@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "ultramem",
+    "title": "UltraMem",
+    "repo": "sanath1599/UltraMem",
+    "tagline": "An AI note taker: meeting audio in, summaries, tasks and reminders out, with a memory map of the people and topics.",
+    "highlights": [
+      "Ten slides through the real product: dashboard, all meetings, new meeting, meeting detail, tasks, analytics and more",
+      "The real logo, sidebar, ember theme and every tab on the meeting page, with a spotlight tour on each screen",
+      "A Your turn slide with working navigation, filters and a dark mode toggle",
+      "Sample figures are labelled illustrative"
+    ],
+    "bytes": 157809,
+    "screenshots": 81
+  },
+  {
+    "slug": "c0py-me",
+    "title": "c0py.me",
+    "repo": "sanath1599/c0py.me",
+    "tagline": "Anonymous peer-to-peer file sharing. Files travel straight between devices, with no accounts and nothing stored on a server.",
+    "highlights": [
+      "The landing page and app reproduced from the source, lion logo included",
+      "Three sharing worlds: Jungle, Room and Family",
+      "Pick files and a person, then try the transfer history and safeguards",
+      "Names, sizes and statuses are labelled illustrative"
+    ],
+    "bytes": 42762,
+    "screenshots": 19
+  },
+  {
+    "slug": "good-returns",
+    "title": "Good Returns",
+    "repo": "sanath1599/Good-Returns",
+    "tagline": "A returns and claims platform that scores every shopper, so reviewers can see who to trust at a glance.",
+    "highlights": [
+      "Twelve slides covering the real dashboard: Overview, Users, Orders, Returns, API Keys, Analytics, Map View and more",
+      "The product's own navy theme, sidebar, tables, status pills and score badges, with a guided tour on each page",
+      "A Your turn slide with every page reproduced, plus the real scoring rules (200 to 900)",
+      "All order, claim and shopper data is labelled illustrative sample data"
+    ],
+    "bytes": 79290,
+    "screenshots": 68
+  }
+]

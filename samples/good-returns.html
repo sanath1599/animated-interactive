@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Good Returns: Product Tour</title>
+<style>
+/* ===== Tailwind-preflight equivalents (product uses Tailwind 3 base) ===== */
+*,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
+html,body{margin:0;height:100%;overflow:hidden}
+body{font-family:Inter,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;background:#060d1a;color:#000}
+h1,h2,h3,p{margin:0;font-size:inherit;font-weight:inherit}
+table{border-collapse:collapse;text-indent:0;border-color:inherit}
+button,input,select{font-family:inherit;font-size:100%;line-height:inherit;color:inherit;margin:0;padding:0}
+button{background:transparent;cursor:pointer;text-align:inherit}
+a{color:inherit;text-decoration:inherit;cursor:pointer}
+svg{display:block;flex-shrink:0}
+input::placeholder{color:#9ca3af}
+/* ===== Deck chrome ===== */
+#wrap{position:absolute;left:0;top:0;right:0;bottom:48px;overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:#fff;overflow:hidden}
+.slide{position:absolute;inset:0;display:none;overflow:hidden}
+.slide.on{display:block}
+#bar{position:absolute;left:0;right:0;bottom:0;height:48px;background:#0a1528;color:#adbfdf;display:flex;align-items:center;gap:12px;padding:0 16px;font-size:13px;border-top:1px solid rgba(255,255,255,.1)}
+#bar button{border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 14px;color:#fff;font-size:13px;font-weight:500;transition:background-color .15s}
+#bar button:hover{background:rgba(255,255,255,.1)}
+#bar button:focus-visible,.deckbtn:focus-visible{outline:2px solid #34d399;outline-offset:2px}
+#dots{flex:1;display:flex;gap:6px;justify-content:center;align-items:center}
+#dots i{width:22px;height:5px;border-radius:3px;background:rgba(255,255,255,.18);cursor:pointer;display:block}
+#dots i.on{background:#34d399}
+#dots i.done{background:#2f4f8c}
+#prog{position:absolute;left:0;top:-1px;height:2px;background:#10b981;transition:width .3s}
+.chip{position:absolute;right:12px;bottom:10px;z-index:30;background:rgba(10,21,40,.88);color:#d1fae5;font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid rgba(52,211,153,.4);pointer-events:none}
+.spot{position:absolute;z-index:20;border-radius:12px;box-shadow:0 0 0 2000px rgba(10,21,40,.62);outline:2px solid #34d399;outline-offset:2px;pointer-events:none;transition:all .3s cubic-bezier(.4,0,.2,1);left:0;top:0;width:0;height:0;opacity:0}
+.spot.on{opacity:1}
+.spot.none{box-shadow:0 0 0 2000px rgba(10,21,40,.0);outline:0}
+.cap{position:absolute;z-index:25;width:430px;left:425px;background:#fff;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,.25),0 1px 4px rgba(0,0,0,.1);padding:16px 18px;font-size:14px;color:#334155;line-height:1.45;transition:top .3s,bottom .3s}
+.cap h4{margin:0 0 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#059669;font-weight:700}
+.cap .ttl{font-size:16px;font-weight:700;color:#0a1528;margin-bottom:4px}
+.cap .nv{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.cap .nv span{font-size:12px;color:#94a3b8}
+.deckbtn{background:#0e1f3c;color:#fff;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:500;transition:background-color .15s}
+.deckbtn:hover{background:#162d55}
+.deckbtn.ghost{background:#fff;color:#334155;border:1px solid #cbd5e1}
+.deckbtn.ghost:hover{background:#f1f5f9}
+.deckbtn:disabled{opacity:.4;cursor:not-allowed}
+.hero{background:linear-gradient(135deg,#0e1f3c 0%,#162d55 50%,#1e3a6e 100%);color:#fff}
+.start{background:#059669;color:#fff;border-radius:10px;padding:14px 40px;font-size:18px;font-weight:600;transition:background-color .2s;box-shadow:0 0 20px rgba(5,150,105,.35)}
+.start:hover{background:#047857}
+.start:focus-visible{outline:3px solid #6ee7b7;outline-offset:3px}
+#tip{position:absolute;z-index:99;pointer-events:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;color:#334155;white-space:pre;display:none;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#toast{position:absolute;left:50%;bottom:70px;transform:translateX(-50%);z-index:60;background:#0e1f3c;color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:520px;text-align:center}
+#toast.on{opacity:1}
+.hint{height:36px;background:#0e1f3c;color:#d1fae5;font-size:12.5px;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.hint b{color:#fff}
+.hint .seg{display:flex;border:1px solid rgba(255,255,255,.25);border-radius:8px;overflow:hidden;margin-left:auto}
+.hint .seg button{padding:3px 12px;font-size:12px;color:#adbfdf;transition:background-color .15s}
+.hint .seg button.on{background:#059669;color:#fff}
+.stub{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px;text-align:center;border:2px dashed #cbd5e1;border-radius:12px;background:#fff;color:#475569;font-size:14px}
+/* ===== Product tokens (tailwind.config.ts + utilities used) ===== */
+.app{z-index:0;display:flex;width:1280px;height:720px;background:#f7f9ff;color:#000;overflow:hidden;text-align:left}
+.app.short{height:684px}
+.sb{width:256px;background:#0e1f3c;color:#fff;display:flex;flex-direction:column;height:100%;flex-shrink:0}
+.sb .lg{padding:24px 24px 20px}
+.sb nav{flex:1;padding:0 12px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;scrollbar-width:none}
+.nv-i{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;font-size:14px;line-height:20px;color:#7c96c8;border:1px solid transparent;margin:0;transition:color .15s,background-color .15s,border-color .15s}
+.nv-i{border-width:0;padding:10px 12px}
+.nv-i:hover{background:rgba(255,255,255,.05);color:#fff}
+.nv-i.act{background:rgba(6,78,59,.4);color:#6ee7b7;border:1px solid rgba(4,120,87,.4)}
+.nv-i.act:hover{background:rgba(6,78,59,.4);color:#6ee7b7}
+.nv-i span{font-weight:500}
+.sb .ft{padding:12px;border-top:1px solid rgba(255,255,255,.1)}
+.col{flex:1;display:flex;flex-direction:column;min-width:0;height:100%}
+.hd{background:#fff;border-bottom:1px solid #f3f4f6}
+.hd>div{display:flex;align-items:center;justify-content:flex-end;padding:10px 32px;gap:16px}
+.main{flex:1;padding:32px;overflow-y:auto;overflow-x:hidden}
+.noscroll .main{scrollbar-width:none}
+.noscroll .main::-webkit-scrollbar{display:none}
+.sy8>*+*{margin-top:32px}.sy6>*+*{margin-top:24px}.sy4>*+*{margin-top:16px}.sy2>*+*{margin-top:8px}.sy3>*+*{margin-top:12px}
+.flex{display:flex}.fc{display:flex;flex-direction:column}.ic{align-items:center}.jb{justify-content:space-between}.is{align-items:flex-start}.f1{flex:1}.sh0{flex-shrink:0}.rel{position:relative}.mw0{min-width:0}
+.g2{gap:8px}.g3{gap:12px}.g4{gap:16px}.g5{gap:20px}.g6{gap:24px}
+.card{border-radius:12px;border:1px solid #e5e7eb;background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.06)}
+.card.p6{padding:24px}
+.card .ct{font-size:18px;line-height:28px;font-weight:600;color:#111827}
+.card .cd{font-size:14px;line-height:20px;color:#6b7280;margin-top:4px}
+.mb4{margin-bottom:16px}.mt1{margin-top:4px}.mt2{margin-top:8px}.mt4{margin-top:16px}.mt3{margin-top:12px}.mb2{margin-bottom:8px}.mb1{margin-bottom:4px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.h1a{font-size:24px;line-height:32px;font-weight:700;color:#0a1528;letter-spacing:-.025em}
+.h1b{font-size:24px;line-height:32px;font-weight:700;color:#111827}
+.h1c{font-size:30px;line-height:36px;font-weight:700;color:#111827}
+.sub{font-size:14px;line-height:20px;color:#64748b;margin-top:4px}
+.subg{font-size:14px;line-height:20px;color:#6b7280;margin-top:2px}
+.subg3{font-size:16px;line-height:24px;color:#4b5563;margin-top:4px}
+.sel{font-size:14px;line-height:20px;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;background:#fff;color:#334155;outline:0;transition:box-shadow .15s}
+.sel:focus{box-shadow:0 0 0 2px rgba(16,185,129,.3);border-color:#34d399}
+.mc-t{font-size:14px;line-height:20px;font-weight:500;color:#4b5563}
+.mc-v{margin-top:8px;font-size:30px;line-height:36px;font-weight:600;color:#111827}
+.mc-i{padding:12px;border-radius:9999px;background:#f3f4f6}
+.sm{font-size:14px;line-height:20px}.xs{font-size:12px;line-height:16px}.fm{font-weight:500}.fs{font-weight:600}.fb{font-weight:700}
+.row{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f8fafc;border-radius:8px;transition:background-color .15s}
+.row:hover{background:#f1f5f9}
+.badge{display:inline-flex;align-items:center;border-radius:9999px;border:1px solid transparent;padding:2px 10px;font-size:12px;line-height:16px;font-weight:600;transition:color .15s,background-color .15s}
+.b-green,.b-success{background:#d1fae5;color:#047857;border-color:#a7f3d0}
+.b-yellow,.b-warning{background:#fef3c7;color:#b45309;border-color:#fde68a}
+.b-red,.b-danger{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.b-blue,.b-info{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+.b-gray,.b-secondary{background:#f3f4f6;color:#374151}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;text-align:center;border:2px dashed #e2e8f0;border-radius:12px;background:rgba(248,250,252,.6)}
+.input{width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;color:#111827;background:#fff;outline:0;line-height:24px;transition:box-shadow .15s}
+.input:focus{box-shadow:0 0 0 2px #0ea5e9;border-color:transparent}
+.btn{padding:8px 16px;border-radius:8px;font-weight:500;transition:color .2s,background-color .2s;line-height:24px;text-align:center}
+.btn-secondary{background:#e5e7eb;color:#111827}
+.btn-secondary:hover{background:#d1d5db}.btn-secondary:active{background:#9ca3af}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.bt{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;border-radius:6px;font-size:14px;line-height:20px;font-weight:500;height:36px;padding:8px 16px;transition:color .15s,background-color .15s,box-shadow .15s}
+.bt.def{background:#0284c7;color:#fff}.bt.def:hover{background:#0369a1}.bt.def:active{background:#075985}
+.bt.sec{background:#f3f4f6;color:#111827}.bt.sec:hover{background:#e5e7eb}
+.bt:disabled{opacity:.5;pointer-events:none}
+.bt:focus-visible,.btn:focus-visible{outline:0;box-shadow:0 0 0 2px #fff,0 0 0 4px #0ea5e9}
+.tbl{min-width:100%}
+.tbl thead{background:#f9fafb}
+.tbl tbody{background:#fff}
+.tbl tbody tr+tr,.tbl tbody+tbody,.tbl thead+tbody{border-top:1px solid #e5e7eb}
+.tbl thead+tbody{border-top:1px solid #e5e7eb}
+.th{padding:12px 24px;text-align:left;font-size:12px;line-height:16px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.05em}
+.td{padding:16px 24px;white-space:nowrap;font-size:14px;line-height:20px;color:#111827}
+.tbl.s tbody tr+tr{border-top:1px solid #f1f5f9}
+.tbl.s thead{background:transparent;border-bottom:1px solid #e2e8f0}
+.th2{padding:12px 16px;text-align:left;font-size:12px;line-height:16px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.td2{padding:12px 16px}
+tr.hv{transition:background-color .15s}tr.hv:hover{background:#f9fafb}
+.tbl.s tr.hv:hover{background:#f8fafc;cursor:pointer}
+.ow{overflow-x:auto}
+.circ{width:32px;height:32px;border-radius:9999px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+.cap1{text-transform:capitalize}
+.lnk{color:#0284c7;font-weight:500;transition:color .15s}.lnk:hover{color:#0369a1}
+.pgf{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid #f3f4f6}
+.pgs{padding:6px 12px;font-size:12px;line-height:16px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#334155}
+.pgs:hover{background:#f8fafc}.pgs:disabled{opacity:.5;cursor:not-allowed}
+.skel{background:#e5e7eb;border-radius:6px;animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes pulse{50%{opacity:.5}}
+.errbox{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:12px 16px;border-radius:8px}
+.mod{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.mod>div{position:relative;background:#fff;border-radius:8px;box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1);width:100%;max-width:512px;max-height:100%;overflow:auto}
+.lab{display:block;font-size:14px;line-height:20px;font-weight:500;color:#374151;margin-bottom:4px}
+.fld{display:flex;height:36px;width:100%;border-radius:6px;border:1px solid #d1d5db;background:#fff;padding:4px 12px;font-size:14px;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.05);outline:0}
+.fld:focus{box-shadow:0 0 0 2px #0ea5e9;border-color:transparent}
+.fld.bad{border-color:#ef4444}
+.cbx{width:13px;height:13px;accent-color:#0284c7}
+.stk{background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:24px}
+.gbtn{display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;padding:8px 12px;background:#fff;border:1px solid #d1d5db;border-radius:8px;color:#374151;font-weight:500;transition:background-color .15s}
+.gbtn:hover{background:#f9fafb}
+.ebtn{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#059669;color:#fff;border-radius:8px;font-size:14px;line-height:20px;font-weight:500;transition:background-color .15s}
+.ebtn:hover{background:#047857}
+.sinp{width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;line-height:20px;outline:0;transition:box-shadow .15s;background:#fff;color:#111827}
+.sinp:focus{box-shadow:0 0 0 2px rgba(16,185,129,.3);border-color:#34d399}
+.usrch{width:100%;padding:10px 16px 10px 36px;font-size:14px;line-height:20px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;outline:0;transition:box-shadow .15s}
+.usrch:focus{box-shadow:0 0 0 2px rgba(16,185,129,.3);border-color:#34d399}
+.sicon{position:absolute;top:50%;transform:translateY(-50%)}
+details summary{cursor:pointer}
+.sl-c{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 80px}
+.reduce *{transition:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:700px){#dots{display:none}#bar{gap:8px;padding:0 8px}.nlabel{display:none}}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage"></div><div id="tip"></div><div id="toast" role="status"></div></div>
+<div id="bar" role="navigation" aria-label="Slide controls"><div id="prog"></div>
+<button id="bBack" aria-label="Back">&larr; <span class="nlabel">Back</span></button>
+<div id="dots"></div><span id="cnt"></span>
+<button id="bNext" aria-label="Next"><span class="nlabel">Next</span> &rarr;</button>
+<button id="bFs" aria-label="Toggle fullscreen (F)" title="Fullscreen (F)">&#x26F6;</button></div>
+<script>
+"use strict";
+/* ============ helpers ============ */
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches||/[?&]reduce=1/.test(location.search);
+if(REDUCED)document.documentElement.classList.add('reduce');
+/* lucide icon paths (24x24, stroke 2, round caps) as used by the product */
+const P={
+'layout-dashboard':'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+'users':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+'key':'<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>',
+'activity':'<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+'file-text':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+'settings':'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+'building-2':'<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+'bar-chart-3':'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+'user-circle':'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>',
+'shield':'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+'shopping-cart':'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+'rotate-ccw':'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+'users-round':'<path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>',
+'map-pin':'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+'log-out':'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+'user':'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+'alert-triangle':'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+'clock':'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+'trending-up':'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+'trending-down':'<path d="M22 17 13.5 8.5 8.5 13.5 2 7"/><path d="M16 17h6v-6"/>',
+'search':'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+'filter':'<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+'chevron-right':'<path d="m9 18 6-6-6-6"/>',
+'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
+'x':'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+'database':'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',
+'server':'<rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>',
+'refresh-cw':'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+'store':'<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>',
+'unlink':'<path d="m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71"/><line x1="8" x2="8" y1="2" y2="5"/><line x1="2" x2="5" y1="8" y2="8"/><line x1="16" x2="16" y1="19" y2="22"/><line x1="19" x2="22" y1="16" y2="16"/>',
+'save':'<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>'
+};
+const ic=(n,s=16,c='',st='')=>`<svg class="${c}" style="${st}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+/* AntmLogo.tsx transcribed */
+function logo(width=110,light=true){
+  const iconSize=32,totalW=width,h=32,dotR=1.4,sp=9.5,go=2;
+  const green=[[0,3],[0,2],[1,1],[2,1],[3,0]],amber=[1,3];
+  const dotColor=light?'rgba(255,255,255,0.25)':'#cbd5e1',dg=light?'#34d399':'#10b981',tx=light?'#ffffff':'#0a1528';
+  let s='';
+  for(let i=0;i<16;i++){const c=i%4,r=Math.floor(i/4);
+    if(green.some(n=>n[0]===c&&n[1]===r)||(amber[0]===c&&amber[1]===r))continue;
+    s+=`<circle cx="${go+c*sp}" cy="${go+r*sp}" r="${dotR}" fill="${dotColor}"/>`;}
+  for(let i=0;i<green.length-1;i++){const a=green[i],b=green[i+1];
+    s+=`<line x1="${go+a[0]*sp}" y1="${go+a[1]*sp}" x2="${go+b[0]*sp}" y2="${go+b[1]*sp}" stroke="${dg}" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>`;}
+  s+=`<circle cx="${go+amber[0]*sp}" cy="${go+amber[1]*sp}" r="${dotR+1}" fill="#f59e0b"/>`;
+  green.forEach(n=>s+=`<circle cx="${go+n[0]*sp}" cy="${go+n[1]*sp}" r="${dotR+1.2}" fill="${dg}"/>`);
+  s+=`<text x="${iconSize+8}" y="${h/2+5.5}" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700" letter-spacing="-0.3" fill="${tx}"><tspan>antm</tspan><tspan fill="${dg}">.ai</tspan></text>`;
+  return `<svg width="${totalW}" height="${h}" viewBox="0 0 ${totalW} ${h}" fill="none" aria-label="ANTM.ai" role="img">${s}</svg>`;
+}
+/* lib/utils.ts */
+const NOW=Date.now();
+const fcur=(a,c='INR')=>new Intl.NumberFormat('en-IN',{style:'currency',currency:c}).format(a);
+const fdate=d=>new Intl.DateTimeFormat('en-IN',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(d));
+const rel=min=>{const s=min*60;if(s<60)return'just now';const m=Math.floor(s/60);if(m<60)return`${m} minute${m>1?'s':''} ago`;const h=Math.floor(m/60);if(h<24)return`${h} hour${h>1?'s':''} ago`;const d=Math.floor(h/24);if(d<30)return`${d} day${d>1?'s':''} ago`;return fdate(NOW-min*60000)};
+const scol=s=>s>=700?'#16a34a':s>=400?'#ca8a04':'#dc2626';
+const badge=(v,t)=>`<div class="badge b-${v}">${t}</div>`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ============ ILLUSTRATIVE SAMPLE DATA (not real results) ============ */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(20260);const ri=(a,b)=>Math.floor(R()*(b-a+1))+a;
+const OV={ '7':{o:214,c:19,p:6,u:87},'30':{o:928,c:104,p:23,u:100},'90':{o:2731,c:301,p:41,u:100}};
+const CATS=['electronics','fashion','home_decor','beauty','sports'];
+const CT=['not_delivered','damaged','wrong_item','quality_issue','did_not_like','payment_issue'];
+const USERS=[],ORDERS=[],CLAIMS=[];
+for(let i=0;i<26;i++){const sc=i<8?ri(720,950):i<16?ri(420,699):i<22?ri(150,419):ri(0,149);
+  USERS.push({id:'c'+((i+7)*2654435761>>>0).toString(16).padStart(8,'0')+((i+3)*40503>>>0).toString(16).padStart(6,'0').slice(-6),uid:'USR-'+(2040+i*13),score:sc,status:sc>=420?'active':sc>=150?'flagged':'blocked',orders:ri(1,14),claims:sc>=700?ri(0,1):sc>=420?ri(0,3):ri(2,7),ago:ri(5,60*24*20)});}
+for(let i=0;i<26;i++){const u=USERS[(i*7)%26];
+  ORDERS.push({id:'o'+i,ext:'ORD-'+(10400+i*17),uid:u.uid,cat:CATS[i%5],amt:ri(499,18999)+[0,.5,.99,0][i%4],st:['delivered','delivered','created','cancelled','delivered'][i%5],score:u.score,claims:i%6===0?1:0,ago:ri(20,60*24*25)});}
+for(let i=0;i<26;i++){const o=ORDERS[(i*5)%26],u=USERS.find(x=>x.uid===o.uid);
+  CLAIMS.push({id:('cl'+(70000000+i*104729).toString(16)+'0000').slice(0,12),type:CT[i%6],amt:ri(299,9999),st:['pending','approved','rejected','pending','partial','approved'][i%6],fraud:u.score<150&&i%2===0,ord:o.ext,score:u.score,ago:ri(15,60*24*22)});}
+const KEYS=[
+ {n:'Production API Key',st:'active',tier:'premium',by:'ShopNova Admin',created:NOW-86400000*41,scopes:['ingest:orders','ingest:claims','read:scores'],used:3*60,exp:null},
+ {n:'Reporting (read-only)',st:'active',tier:'standard',by:'ShopNova Admin',created:NOW-86400000*17,scopes:['read:scores','read:reports'],used:60*30,exp:NOW+86400000*120},
+ {n:'Staging API Key',st:'revoked',tier:'standard',by:'ShopNova Admin',created:NOW-86400000*88,scopes:['ingest:orders'],used:null,exp:null}];
+const AUDIT=[
+ {a:'user_login',ago:12,user:'Platform Admin',ten:null,rt:null,ip:'203.0.113.24',ch:null},
+ {a:'api_key_created',ago:95,user:'ShopNova Admin',ten:'ShopNova',rt:'api_key',rid:'key_4f2a91',ip:'203.0.113.52',ch:{name:'Reporting (read-only)',rateTier:'standard'}},
+ {a:'karma_user_status_changed',ago:60*5,user:'Platform Admin',ten:'RapidEats',rt:'karma_user',rid:'ku_81c0d2',ip:'203.0.113.24',ch:{status:{from:'active',to:'flagged'}}},
+ {a:'tenant_created',ago:60*30,user:'Platform Admin',ten:'StyleHub',rt:'tenant',rid:'tenant-stylehub',ip:'203.0.113.24',ch:{plan:'starter'}},
+ {a:'api_key_revoked',ago:60*52,user:'ShopNova Admin',ten:'ShopNova',rt:'api_key',rid:'key_09be77',ip:'203.0.113.52',ch:{status:'revoked'}},
+ {a:'user_login',ago:60*70,user:'SwiftDeliver Admin',ten:'SwiftDeliver',rt:null,ip:'198.51.100.7',ch:null}];
+const AUDACT=[['','All Actions'],['user_login','User Login'],['api_key_created','API Key Created'],['api_key_revoked','API Key Revoked'],['tenant_created','Tenant Created'],['karma_user_status_changed','User Status Changed']];
+const AUDCOL={user_login:'blue',api_key_created:'green',api_key_revoked:'red',tenant_created:'green',karma_user_status_changed:'yellow'};
+/* 90 days of daily series */
+const SER=(()=>{const o=[],c=[];for(let i=89;i>=0;i--){const d=new Date(NOW-i*86400000).toISOString().split('T')[0];
+  const n=ri(18,44);o.push({date:d,count:n,total:n*ri(1900,3100)});const k=ri(1,7);c.push({date:d,count:k,total:k*ri(900,2600)});}
+  return{orders:o.sort((a,b)=>a.date.localeCompare(b.date)),claims:c.sort((a,b)=>a.date.localeCompare(b.date))}})();
+const CLAIMTYPES=[['not_delivered',31],['damaged',22],['wrong_item',14],['quality_issue',17],['did_not_like',12],['payment_issue',8]];
+const CATDIST=[['electronics',212],['fashion',264],['home_decor',148],['beauty',176],['sports',128]];
+const SCOREDIST=[['0-200',9],['201-400',18],['401-600',27],['601-800',29],['801-1000',17]];
+const HEALTH={db:{ms:14,st:'healthy'},api:{err:0.8,lat:86},sys:{tenants:6,active:6,users:8,ku:100,mem:[142,198,265]},
+ eps:[['/api/v1/score/user',1240,0.4,62],['/api/v1/events/order_created',860,0.9,48],['/api/v1/events/claim_created',215,1.4,71],['/api/v1/events/claim_outcome',172,6.2,95]]};
+/* ============ charts (inline SVG; Recharts-style) ============ */
+const CC=['#0e1f3c','#059669','#d97706','#7c3aed','#dc2626','#0ea5e9'];
+function nice(max){const x=max/4,p=Math.pow(10,Math.floor(Math.log10(x)||0));let st=[1,2,2.5,5,10].map(f=>f*p).find(v=>v>=x)||p*10;const t=[];for(let v=0;v<=Math.ceil(max/st)*st+1e-9;v+=st)t.push(Math.round(v*100)/100);return t}
+function mono(p){const n=p.length,m=[],d=[];for(let i=0;i<n-1;i++)d.push((p[i+1][1]-p[i][1])/(p[i+1][0]-p[i][0]));m[0]=d[0];m[n-1]=d[n-2];
+  for(let i=1;i<n-1;i++)m[i]=d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2;
+  for(let i=0;i<n-1;i++){if(d[i]===0){m[i]=m[i+1]=0}else{const a=m[i]/d[i],b=m[i+1]/d[i],h=a*a+b*b;if(h>9){const t=3/Math.sqrt(h);m[i]=t*a*d[i];m[i+1]=t*b*d[i]}}}
+  let s=`M${p[0][0]},${p[0][1]}`;for(let i=0;i<n-1;i++){const dx=(p[i+1][0]-p[i][0])/3;s+=`C${p[i][0]+dx},${p[i][1]+m[i]*dx} ${p[i+1][0]-dx},${p[i+1][1]-m[i+1]*dx} ${p[i+1][0]},${p[i+1][1]}`}return s}
+const TX=(x,y,t,a='middle',x2='')=>`<text x="${x}" y="${y}" text-anchor="${a}" font-size="11" fill="#64748b" ${x2}>${t}</text>`;
+function legend(items,W,y,line){let w=items.reduce((s,i)=>s+(i[1].length*6.4+34),0),x=(W-w)/2,o='';
+  items.forEach(([c,n])=>{o+=line?`<line x1="${x}" x2="${x+14}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="3"/>`:`<rect x="${x}" y="${y-7}" width="14" height="14" fill="${c}" rx="1"/>`;
+   o+=`<text x="${x+19}" y="${y+4}" font-size="12" fill="${c}">${n}</text>`;x+=n.length*6.4+34});return o}
+function lineChart(data,s,W=910,H=300){const L=65,Rg=65,T=5,B=H-5-30-26,w=W-L-Rg,h=B-T;
+  const mL=Math.max(...data.map(d=>d.count)),mR=Math.max(...data.map(d=>d.total));
+  const tl=nice(mL),tr=nice(mR),yl=v=>B-v/tl[tl.length-1]*h,yr=v=>B-v/tr[tr.length-1]*h,n=data.length,x=i=>L+(n===1?w/2:i/(n-1)*w);
+  let o='';tl.forEach(v=>{o+=`<line x1="${L}" x2="${L+w}" y1="${yl(v)}" y2="${yl(v)}" stroke="#e2e8f0" stroke-dasharray="3 3"/>`+TX(L-8,yl(v)+4,v,'end');});
+  tr.forEach(v=>o+=TX(L+w+8,yr(v)+4,v,'start'));
+  const iv=Math.ceil(n/7);data.forEach((d,i)=>{o+=`<line x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${B}" stroke="#e2e8f0" stroke-dasharray="3 3"/>`;if(i%iv===0)o+=TX(x(i),B+18,d.date)});
+  o+=`<line x1="${L}" x2="${L+w}" y1="${B}" y2="${B}" stroke="#666"/><line x1="${L}" x2="${L}" y1="${T}" y2="${B}" stroke="#666"/><line x1="${L+w}" x2="${L+w}" y1="${T}" y2="${B}" stroke="#666"/>`;
+  s.forEach(se=>{const pts=data.map((d,i)=>[x(i),se.ax==='l'?yl(d[se.k]):yr(d[se.k])]);o+=`<path d="${mono(pts)}" fill="none" stroke="${se.c}" stroke-width="2"/>`});
+  const bw=w/(n-1||1);data.forEach((d,i)=>{o+=`<rect x="${x(i)-bw/2}" y="${T}" width="${bw}" height="${h}" fill="transparent" data-tip="${d.date}&#10;${s.map(se=>se.n+' : '+d[se.k].toLocaleString()).join('&#10;')}"/>`});
+  o+=legend(s.map(se=>[se.c,se.n]),W,H-13,true);
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="${s.map(e=>e.n).join(' and ')} over time" style="display:block;overflow:visible">${o}</svg>`}
+function barChart(rows,color,name,W=418,H=300){const L=65,Rg=5,T=5,B=H-5-30-26,w=W-L-Rg,h=B-T,t=nice(Math.max(...rows.map(r=>r[1]))),top=t[t.length-1],band=w/rows.length;
+  let o='';t.forEach(v=>{const y=B-v/top*h;o+=`<line x1="${L}" x2="${L+w}" y1="${y}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="3 3"/>`+TX(L-8,y+4,v,'end')});
+  rows.forEach((r,i)=>{const bx=L+band*i+band*.1,bwid=band*.8,bh=r[1]/top*h,y=B-bh;
+    o+=`<line x1="${L+band*i}" x2="${L+band*i}" y1="${T}" y2="${B}" stroke="#e2e8f0" stroke-dasharray="3 3"/>`;
+    o+=`<path d="M${bx},${B}V${y+3}Q${bx},${y} ${bx+3},${y}H${bx+bwid-3}Q${bx+bwid},${y} ${bx+bwid},${y+3}V${B}Z" fill="${color}" data-tip="${r[0]}&#10;${name} : ${r[1]}"/>`;
+    o+=TX(L+band*(i+.5),B+18,r[0])});
+  o+=`<line x1="${L+w}" x2="${L+w}" y1="${T}" y2="${B}" stroke="#e2e8f0" stroke-dasharray="3 3"/><line x1="${L}" x2="${L+w}" y1="${B}" y2="${B}" stroke="#666"/><line x1="${L}" x2="${L}" y1="${T}" y2="${B}" stroke="#666"/>`;
+  o+=legend([[color,name]],W,H-13,false);
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="${name} by category" style="display:block;overflow:visible">${o}</svg>`}
+function pie(rows,W=418,H=300){const tot=rows.reduce((s,r)=>s+r[1],0),cx=W/2,cy=(H-30)/2,r=80;let a=0,o='';
+  rows.forEach((row,i)=>{const sw=row[1]/tot*360,a0=a,a1=a+sw;a=a1;const p=(ang,rad)=>[cx+rad*Math.cos(-ang*Math.PI/180),cy+rad*Math.sin(-ang*Math.PI/180)];
+    const [x0,y0]=p(a0,r),[x1,y1]=p(a1,r),mid=(a0+a1)/2,[lx0,ly0]=p(mid,r),[lx1,ly1]=p(mid,r+18),[tx,ty]=p(mid,r+22);
+    o+=`<path d="M${cx},${cy}L${x0},${y0}A${r},${r} 0 ${sw>180?1:0} 0 ${x1},${y1}Z" fill="${CC[i%6]}" stroke="#fff" data-tip="${row[0]}&#10;${row[1]}"/>`;
+    o+=`<line x1="${lx0}" y1="${ly0}" x2="${lx1}" y2="${ly1}" stroke="${CC[i%6]}"/><text x="${tx}" y="${ty+4}" text-anchor="${Math.cos(-mid*Math.PI/180)>=0?'start':'end'}" font-size="13" fill="${CC[i%6]}">${row[1]}</text>`});
+  /* wrapped legend */
+  const items=rows.map((r,i)=>[CC[i%6],r[0]]);let l1=items.slice(0,3),l2=items.slice(3);
+  o+=legend(l1,W,H-26,false)+legend(l2,W,H-8,false);
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" role="img" aria-label="Claim types" style="display:block;overflow:visible">${o}</svg>`}
+/* ============ product components ============ */
+const card=(inner,t,d,cls='')=>`<div class="card p6 ${cls}">${t||d?`<div class="mb4">${t?`<h3 class="ct">${t}</h3>`:''}${d?`<p class="cd">${d}</p>`:''}</div>`:''}${inner}</div>`;
+const sk=(c='')=>`<div class="skel ${c}"></div>`;
+const skMetric=()=>`<div class="card" style="padding:24px;border-left:4px solid #e5e7eb"><div class="flex ic jb"><div class="f1">${sk('').replace('class="skel "','class="skel" style="height:12px;width:96px;margin-bottom:8px"')}<div class="skel" style="height:36px;width:80px;margin-bottom:12px"></div><div class="skel" style="height:12px;width:64px"></div></div><div class="skel" style="width:48px;height:48px;border-radius:12px"></div></div></div>`;
+const skRow=n=>`<tr>${Array.from({length:n},(_,i)=>`<td style="padding:16px 24px"><div class="skel" style="height:16px;width:${i?80:160}px"></div></td>`).join('')}</tr>`;
+const skItem=()=>`<div class="flex ic jb" style="padding:16px 24px"><div class="flex ic g3"><div class="skel" style="width:32px;height:32px;border-radius:9999px"></div><div><div class="skel" style="height:16px;width:128px;margin-bottom:6px"></div><div class="skel" style="height:12px;width:96px"></div></div></div><div class="skel" style="height:24px;width:64px;border-radius:9999px"></div></div>`;
+const skChart=h=>`<div style="height:${h}px;display:flex;align-items:flex-end;gap:4px;padding:0 16px">${[55,80,40,90,65,75,50,85,45,70,60,88].map(v=>`<div class="skel" style="flex:1;height:${v}%;border-radius:4px 4px 0 0"></div>`).join('')}</div>`;
+function metric(t,v,icon,col){return `<div class="card p6"><div class="flex ic jb"><div class="f1"><p class="mc-t">${t}</p><p class="mc-v" ${typeof v==='number'?`data-count="${v}"`:''}>${typeof v==='number'?v.toLocaleString():v}</p></div><div class="mc-i" style="color:${col}">${ic(icon,24)}</div></div></div>`}
+function pager(S,key,total,lim,word,variant){const tp=Math.ceil(total/lim);if(tp<=1)return'';const p=S.pg[key];const a=(p-1)*lim+1,b=Math.min(p*lim,total);
+  return variant==='s'?`<div class="flex ic jb mt4" style="padding-top:16px;border-top:1px solid #f1f5f9"><div class="xs" style="color:#64748b">${a}–${b} of ${total} ${word}</div><div class="flex g2"><button type="button" class="pgs" data-a="pg" data-k="${key}" data-d="-1" ${p===1?'disabled':''}>Previous</button><button type="button" class="pgs" data-a="pg" data-k="${key}" data-d="1" ${p===tp?'disabled':''}>Next</button></div></div>`
+  :`<div class="pgf"><p class="sm" style="color:#6b7280">Showing ${a} – ${b} of ${total} ${word}</p><div class="flex g2"><button class="btn btn-secondary" data-a="pg" data-k="${key}" data-d="-1" ${p===1?'disabled':''}>Previous</button><button class="btn btn-secondary" data-a="pg" data-k="${key}" data-d="1" ${p===tp?'disabled':''}>Next</button></div></div>`}
+const shieldOrWarn=s=>s>=700?ic('shield',13,'','color:#10b981'):s<400?ic('alert-triangle',13,'','color:#ef4444'):'';
+const stat=s=>s==='approved'?'success':s==='rejected'?'danger':s==='pending'?'warning':'secondary';
+/* ============ pages ============ */
+const PAGES={};
+PAGES.overview=S=>{const m=OV[S.days],L=S.loading,rate=m.c/m.o*100;
+  const ro=ORDERS.slice(0,5),rc=CLAIMS.slice(0,5);
+  const list=(items,mk)=>L?`<div style="border-top:0">${[1,2,3,4].map(skItem).join('')}</div>`:`<div class="sy2">${items.map(mk).join('')}</div>`;
+  return `<div class="sy8"><div class="flex is jb"><div><h1 class="h1a">Overview</h1><p class="sub">Monitor your platform metrics and activity</p></div>
+  <select class="sel" data-sp="range" data-i="days" aria-label="Date range">${[['7','Last 7 days'],['30','Last 30 days'],['90','Last 90 days']].map(o=>`<option value="${o[0]}" ${o[0]===S.days?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+  <div class="grid4 g5" data-sp="metrics">${L?[1,2,3,4].map(skMetric).join(''):metric('Total Orders',m.o,'shopping-cart','#2563eb')+metric('Total Claims',m.c,'alert-triangle','#ea580c')+metric('Pending Claims',m.p,'clock','#d97706')+metric('ANTM Score Users',m.u,'users','#059669')}</div>
+  ${L?'':`<div data-sp="rate">${card(`<div class="flex ic g6"><div class="fb" style="font-size:36px;line-height:40px;color:#0a1528">${rate.toFixed(2)}%</div><div>${rate>10?`<div class="flex ic" style="gap:6px;color:#dc2626">${ic('trending-up',18)}<span class="sm fm">Above average</span></div>`:`<div class="flex ic" style="gap:6px;color:#059669">${ic('trending-down',18)}<span class="sm fm">Within normal range</span></div>`}<div class="mt2" style="width:192px;height:6px;border-radius:9999px;background:#f1f5f9;overflow:hidden"><div style="height:100%;border-radius:9999px;background:${rate>10?'#ef4444':'#10b981'};width:${Math.min(rate/20*100,100)}%;transition:all .15s"></div></div></div></div>`,'Claim Rate','Percentage of orders resulting in claims')}</div>`}
+  <div class="grid2 g5" data-sp="recent">
+  ${card(list(ro,o=>`<div class="row"><div class="f1"><div class="fm sm" style="color:#1e293b">${o.ext}</div><div class="xs mt1" style="color:#64748b;margin-top:2px">${o.cat} · ${rel(o.ago)}</div></div><div style="text-align:right"><div class="fs sm" style="color:#1e293b">${fcur(o.amt)}</div>${badge(o.st==='delivered'?'green':'blue',o.st)}</div></div>`),'Recent Orders','Latest orders in the system')}
+  ${card(list(rc,c=>`<div class="row"><div class="f1"><div class="fm sm" style="color:#1e293b">${c.type.replace(/_/g,' ')}</div><div class="xs" style="color:#64748b;margin-top:2px">Order ${c.ord} · ${rel(c.ago)}</div></div><div style="text-align:right"><div class="fs sm" style="color:#1e293b">${fcur(c.amt)}</div>${badge(c.st==='approved'?'green':c.st==='rejected'?'red':'yellow',c.st)}</div></div>`),'Recent Claims','Latest claims filed')}
+  </div></div>`};
+const emptyIcon=(i,t)=>`<tr><td colspan="8" style="text-align:center;padding:48px 0;color:#9ca3af"><div style="display:flex;justify-content:center;margin-bottom:8px;opacity:.4">${ic(i,32)}</div><p class="sm">${t}</p></td></tr>`;
+PAGES.users=S=>{const q=S.q.users.toLowerCase(),rows=USERS.filter(u=>!q||u.uid.toLowerCase().includes(q));const pg=S.pg.users,pr=rows.slice((pg-1)*20,pg*20);
+  const th=['User','ANTM Score','Status','Orders','Claims','Last Active','Actions'].map(h=>`<th class="th2">${h}</th>`).join('');
+  const body=S.loading?Array.from({length:8},()=>skRow(7)).join(''):!rows.length?`<tr><td colspan="7"><div class="fc ic" style="justify-content:center;padding:64px 0;text-align:center"><div style="width:48px;height:48px;background:#f1f5f9;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:20px">👤</div><p class="sm fs" style="color:#334155">No users found</p><p class="xs" style="color:#94a3b8;margin-top:4px">Users appear here once they make their first order.</p></div></td></tr>`
+   :pr.map(u=>`<tr class="hv" data-a="stub" data-m="User detail pages are not recreated in this tour."><td class="td2"><div class="fm sm" style="color:#1e293b">${u.uid}</div><div class="mono" style="font-size:11px;line-height:16px;color:#94a3b8">…${u.id.slice(-8)}</div></td>
+   <td class="td2"><div class="flex ic g2"><span class="sm fs" style="color:${u.score>=700?'#059669':u.score>=400?'#d97706':'#dc2626'}">${u.score}</span><div style="width:56px;height:6px;background:#f1f5f9;border-radius:9999px;overflow:hidden;flex-shrink:0"><div style="height:100%;border-radius:9999px;width:${u.score/10}%;background:${u.score>=700?'#059669':u.score>=400?'#d97706':'#dc2626'}"></div></div></div></td>
+   <td class="td2">${badge(u.status==='active'?'green':u.status==='blocked'?'red':'yellow',u.status)}</td><td class="td2 sm" style="color:#334155">${u.orders}</td><td class="td2 sm" style="color:#334155">${u.claims}</td><td class="td2 xs" style="color:#64748b">${rel(u.ago)}</td><td class="td2"><a class="sm fm" style="color:#047857" data-a="stub" data-m="User detail pages are not recreated in this tour.">View</a></td></tr>`).join('');
+  return `<div class="sy6"><div><h1 class="h1a">Users</h1><p class="sub">View and manage ANTM Score users</p></div>
+  <div class="rel" data-sp="search">${ic('search',16,'sicon','left:12px;color:#94a3b8')}<input id="f-users" class="usrch" type="text" placeholder="Search by email or phone..." value="${esc(S.q.users)}" data-i="q.users" aria-label="Search users"></div>
+  <div class="card p6" data-sp="table"><div class="ow"><table class="tbl s"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>${pager(S,'users',rows.length,20,'users','s')}</div></div>`};
+const sel=(id,cls,key,val,opts,pad='8px 12px')=>`<select id="${id}" class="input ${cls}" style="padding:${pad};appearance:none;-webkit-appearance:none" data-i="${key}">${opts.map(o=>`<option value="${o[0]}" ${o[0]===val?'selected':''}>${o[1]}</option>`).join('')}</select>`;
+PAGES.orders=S=>{const q=S.q.orders.toLowerCase(),rows=ORDERS.filter(o=>(!q||o.ext.toLowerCase().includes(q)||o.uid.toLowerCase().includes(q))&&(!S.st.orders||o.st===S.st.orders));const pg=S.pg.orders,pr=rows.slice((pg-1)*20,pg*20);
+  const ov=s=>s==='delivered'?'success':s==='cancelled'?'danger':'info';
+  const th=['Order','Category','Amount','Status','Karma Score','Claims','Date',''].map(h=>`<th class="th">${h}</th>`).join('');
+  const body=S.loading?Array.from({length:10},()=>skRow(8)).join(''):!rows.length?emptyIcon('shopping-cart','No orders found'):pr.map(o=>`<tr class="hv"><td class="td"><div class="flex ic g3"><div class="circ" style="background:#f0f9ff">${ic('shopping-cart',14,'','color:#0284c7')}</div><div><p class="fm" style="color:#111827">${o.ext}</p><p class="xs mono" style="color:#9ca3af">${o.uid}</p></div></div></td>
+   <td class="td"><span class="cap1" style="color:#374151">${o.cat}</span></td><td class="td fs" style="color:#111827">${fcur(o.amt)}</td><td class="td">${badge(ov(o.st),o.st)}</td>
+   <td class="td"><div class="flex ic" style="gap:6px"><span class="fb" style="color:${scol(o.score)}">${o.score}</span>${shieldOrWarn(o.score)}</div></td><td class="td"><span class="fs" style="color:${o.claims>0?'#d97706':'#4b5563'}">${o.claims}</span></td><td class="td sm" style="color:#6b7280">${rel(o.ago)}</td>
+   <td class="td"><a class="flex ic lnk sm" style="gap:4px" data-a="stub" data-m="Order detail pages are not recreated in this tour.">View ${ic('chevron-right',14)}</a></td></tr>`).join('');
+  return `<div class="sy8"><div><h1 class="h1b">Orders</h1><p class="subg">View and manage all platform orders</p></div>
+  <div class="flex g3" data-sp="filters"><div class="rel f1">${ic('search',18,'sicon','left:12px;color:#9ca3af')}<input id="f-orders" class="input" style="padding-left:40px" type="text" placeholder="Search by order ID or user ID..." value="${esc(S.q.orders)}" data-i="q.orders" aria-label="Search orders"></div>
+  <div class="rel" style="width:176px">${ic('filter',16,'sicon','left:12px;color:#9ca3af;z-index:1')}${sel('s-orders','','st.orders',S.st.orders,[['','All Statuses'],['created','Created'],['delivered','Delivered'],['cancelled','Cancelled']],'8px 16px 8px 36px')}</div></div>
+  <div class="card" data-sp="table"><div class="ow"><table class="tbl"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>${pager(S,'orders',rows.length,20,'orders')}</div></div>`};
+const CTLAB=t=>t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+PAGES.returns=S=>{const q=S.q.returns.toLowerCase(),rows=CLAIMS.filter(c=>(!q||c.ord.toLowerCase().includes(q)||c.type.replace(/_/g,' ').includes(q))&&(!S.st.returns||c.st===S.st.returns)&&(!S.ty||c.type===S.ty));const pg=S.pg.returns,pr=rows.slice((pg-1)*20,pg*20);
+  const th=['Claim','Type','Amount','Status','Order','Karma Score','Date',''].map(h=>`<th class="th">${h}</th>`).join('');
+  const body=S.loading?Array.from({length:10},()=>skRow(8)).join(''):!rows.length?emptyIcon('file-text','No returns or claims found'):pr.map(c=>`<tr class="hv"><td class="td"><div class="flex ic g3"><div class="circ" style="background:${c.fraud?'#fef2f2':'#fffbeb'}">${ic('file-text',14,'','color:'+(c.fraud?'#dc2626':'#d97706'))}</div><div><p class="fm mono xs" style="color:#111827">${c.id.slice(0,8)}...</p>${c.fraud?'<span class="xs fm" style="color:#dc2626">Fraud Flag</span>':''}</div></div></td>
+   <td class="td"><span class="cap1 sm" style="color:#374151">${c.type.replace(/_/g,' ')}</span></td><td class="td fs" style="color:#111827">${fcur(c.amt)}</td><td class="td">${badge(stat(c.st),c.st)}</td>
+   <td class="td"><a class="mono xs fm lnk" data-a="stub" data-m="Order detail pages are not recreated in this tour.">${c.ord}</a></td>
+   <td class="td"><div class="flex ic" style="gap:6px"><span class="fb" style="color:${scol(c.score)}">${c.score}</span>${shieldOrWarn(c.score)}</div></td><td class="td sm" style="color:#6b7280">${rel(c.ago)}</td>
+   <td class="td"><a class="flex ic lnk sm" style="gap:4px" data-a="stub" data-m="Return detail pages are not recreated in this tour.">View ${ic('chevron-right',14)}</a></td></tr>`).join('');
+  return `<div class="sy8"><div><h1 class="h1b">Returns & Claims</h1><p class="subg">Manage all return requests and claims</p></div>
+  <div class="flex g3" data-sp="filters"><div class="rel f1">${ic('search',18,'sicon','left:12px;color:#9ca3af')}<input id="f-returns" class="input" style="padding-left:40px" type="text" placeholder="Search by order ID or claim reason..." value="${esc(S.q.returns)}" data-i="q.returns" aria-label="Search returns"></div>
+  <div class="rel" style="width:160px">${ic('filter',16,'sicon','left:12px;color:#9ca3af;z-index:1')}${sel('s-returns','','st.returns',S.st.returns,[['','All Statuses'],['pending','Pending'],['approved','Approved'],['rejected','Rejected'],['partial','Partial']],'8px 16px 8px 36px')}</div>
+  <div class="rel" style="width:192px">${sel('t-returns','','ty',S.ty,[['','All Types'],...CT.map(t=>[t,CTLAB(t)])])}</div></div>
+  <div class="card" data-sp="table"><div class="ow"><table class="tbl"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>${pager(S,'returns',rows.length,20,'returns')}</div></div>`};
+PAGES.analytics=S=>{const n=+S.days,L=S.loading,o=SER.orders.slice(-n),c=SER.claims.slice(-n);
+  const ch=h=>L?skChart(300):h;
+  return `<div class="sy8"><div class="flex ic jb"><div><h1 class="h1a">Analytics</h1><p class="sub">Insights and trends for your platform</p></div>
+  <select class="sel" data-i="days" aria-label="Time range">${[['7','Last 7 days'],['30','Last 30 days'],['90','Last 90 days']].map(x=>`<option value="${x[0]}" ${x[0]===S.days?'selected':''}>${x[1]}</option>`).join('')}</select></div>
+  <div data-sp="orders">${card(ch(lineChart(o,[{k:'count',ax:'l',c:CC[0],n:'Order Count'},{k:'total',ax:'r',c:CC[1],n:'Order Value'}])),'Orders Over Time','Daily order volume and value')}</div>
+  <div data-sp="claims">${card(ch(lineChart(c,[{k:'count',ax:'l',c:CC[2],n:'Claim Count'},{k:'total',ax:'r',c:CC[4],n:'Claim Value'}])),'Claims Over Time','Daily claim volume and value')}</div>
+  <div class="grid2 g6" data-sp="dist">${card(ch(pie(CLAIMTYPES)),'Claim Types','Distribution of claims by type')}${card(ch(barChart(CATDIST,CC[5],'Orders')),'Order Categories','Orders by product category')}</div>
+  <div data-sp="score">${card(ch(barChart(SCOREDIST,CC[3],'Users',910,300)),'ANTM Score Distribution','User distribution across score ranges')}</div></div>`};
+PAGES.apikeys=S=>{
+  const cards=KEYS.map(k=>`<div class="card p6"><div class="flex is jb"><div class="flex ic g3 f1"><div style="padding:12px;background:#dbeafe;color:#2563eb;border-radius:8px">${ic('key',20)}</div><div class="f1"><div class="flex ic g3"><h3 class="fs" style="font-size:18px;line-height:28px;color:#111827">${k.n}</h3>${badge(k.st==='active'?'green':'gray',k.st)}${badge('blue',k.tier)}</div><p class="sm" style="color:#4b5563;margin-top:4px">Created by ${k.by} • ${fdate(k.created)}</p></div></div></div>
+   <div class="mt4 sy2"><div class="sm"><span style="color:#4b5563">Scopes: </span><span class="fm" style="color:#111827">${k.scopes.join(', ')}</span></div>${k.used!=null?`<div class="sm" style="color:#4b5563">Last used ${rel(k.used)}</div>`:''}${k.exp?`<div class="sm" style="color:#4b5563">Expires ${fdate(k.exp)}</div>`:''}</div></div>`).join('');
+  return `<div class="sy8"><div class="flex ic jb"><div><h1 class="h1c">API Keys</h1><p class="subg3">Manage API keys for accessing the ANTM.ai API</p></div>
+  <button class="bt def" data-sp="create" data-a="openModal">${ic('plus',20)}Create API Key</button></div><div class="sy4" data-sp="keys">${cards}</div></div>`};
+function apiModal(S){const f=S.form,sc=[['ingest:orders','Ingest Orders'],['ingest:claims','Ingest Claims'],['read:scores','Read Scores'],['read:reports','Read Reports']];
+  return `<div class="mod"><div data-sp="modal" role="dialog" aria-modal="true" aria-label="Create API Key"><div class="flex ic jb" style="padding:16px 24px;border-bottom:1px solid #e5e7eb"><div><h3 class="fs" style="font-size:18px;line-height:28px;color:#111827">Create API Key</h3><p class="sm" style="color:#4b5563;margin-top:4px">Generate a new API key for accessing the ANTM.ai API</p></div><button aria-label="Close" data-a="closeModal" style="color:#9ca3af">${ic('x',20)}</button></div>
+  <form data-a="submit" novalidate style="padding:16px 24px" class="sy4"><div><label class="lab" for="kn">Name</label><input id="kn" class="fld ${S.formErr?'bad':''}" placeholder="Production API Key" value="${esc(f.name)}" data-i="form.name" required>${S.formErr?`<p class="sm" style="color:#dc2626;margin-top:4px">${S.formErr}</p>`:''}</div>
+  <div><label class="lab">Scopes</label><div class="sy2">${sc.map(s=>`<label class="flex ic g2"><input type="checkbox" class="cbx" data-a="scope" data-v="${s[0]}" ${f.scopes.includes(s[0])?'checked':''}><span class="sm" style="color:#374151">${s[1]}</span></label>`).join('')}</div></div>
+  <div><label class="lab" for="kt">Rate Tier</label><select id="kt" class="input" data-i="form.tier">${[['standard','Standard (100 req/min)'],['premium','Premium (500 req/min)'],['enterprise','Enterprise (2000 req/min)']].map(o=>`<option value="${o[0]}" ${f.tier===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+  <div class="flex g3"><button type="button" class="bt sec" data-a="closeModal">Cancel</button><button type="submit" class="bt def" ${f.scopes.length===0?'disabled':''}>Create API Key</button></div></form></div></div>`}
+PAGES.settings=S=>{const c=S.cfg,fl=(k,l,d,t)=>`<div><label class="lab" for="c-${k}">${l}</label><input id="c-${k}" type="number" class="sinp" value="${c[k]}" data-i="cfg.${k}"><p class="xs" style="color:#9ca3af;margin-top:4px">${d}</p></div>`;
+  return `<div class="sy8"><div><h1 class="h1c">Settings</h1><p class="subg3">Configure your tenant settings and preferences</p></div>
+  <div class="stk" data-sp="shopify"><h2 class="fs" style="font-size:18px;line-height:28px;color:#111827;margin-bottom:4px">Shopify Integration</h2><p class="sm" style="color:#6b7280;margin-bottom:16px">Manage your connected Shopify store</p>
+  <div class="sy3"><p class="sm" style="color:#6b7280">No Shopify store connected.</p><button class="sm" style="padding:8px 16px;background:#059669;color:#fff;border-radius:8px;transition:background-color .15s" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'" data-a="stub" data-m="Connecting a store needs the live product; not available in this offline demo.">Connect Shopify Store</button></div></div>
+  <div class="stk" data-sp="risk"><h2 class="fs" style="font-size:18px;line-height:28px;color:#111827;margin-bottom:4px">Risk Thresholds</h2><p class="sm" style="color:#6b7280;margin-bottom:16px">Configure automatic decision thresholds</p>
+  <div class="sy4">${fl('auto_approve_threshold','Auto-Approve Threshold','ANTM Score above this value will be auto-approved')}${fl('manual_review_threshold','Manual Review Threshold','ANTM Score below this value will be auto-declined')}${fl('max_claim_amount','Max Auto-Approve Claim Amount (₹)','Maximum claim amount for auto-approval')}${fl('claim_time_window','Claim Time Window (days)','Maximum days after delivery to file a claim')}
+  <button class="ebtn" data-a="stub" data-m="Preview only: settings are not saved in this demo.">${ic('save',16)}Save Settings</button></div></div></div>`};
+PAGES.system=S=>{const h=HEALTH,mc=(t,v,i,c)=>`<div class="card p6"><div class="flex ic jb"><div class="f1"><p class="mc-t">${t}</p><p class="mc-v">${v}</p></div><div class="mc-i" style="color:${c}">${ic(i,24)}</div></div></div>`;
+  const sc=(t,v,i,b)=>`<div class="card p6"><div class="flex ic jb"><div><p class="sm" style="color:#4b5563">${t}</p><p class="fb" style="font-size:24px;line-height:32px;color:#111827;margin-top:4px">${v}</p></div><div class="flex ic g2">${ic(i,24,'','color:#9ca3af')}${b||''}</div></div></div>`;
+  return `<div class="sy8"><div class="flex ic jb"><div><h1 class="h1c">System Health</h1><p class="subg3">Monitor platform performance and metrics</p></div><button class="bt def" data-a="stub" data-m="Refresh needs live data; this demo shows fixed sample values.">${ic('refresh-cw',16)}<span style="margin-left:8px">Refresh</span></button></div>
+  <div class="grid3 g6" data-sp="status">${sc('Database',h.db.ms+'ms','database',badge('green',h.db.st))}${sc('API Error Rate',h.api.err+'%','activity',badge(h.api.err<5?'green':'yellow',h.api.err<5?'healthy':'elevated'))}${sc('Avg API Latency',h.api.lat+'ms','server')}</div>
+  <div class="grid4 g6" data-sp="tenants">${mc('Total Tenants',h.sys.tenants,'users','#2563eb')}${mc('Active Tenants',h.sys.active,'activity','#16a34a')}${mc('Total Users',h.sys.users,'users','#9333ea')}${mc('Karma Users',h.sys.ku,'users','#ea580c')}</div>
+  ${card(`<div class="grid3 g6">${['Heap Used','Heap Total','RSS'].map((t,i)=>`<div><p class="sm" style="color:#4b5563">${t}</p><p class="fb" style="font-size:24px;line-height:32px;color:#111827">${h.sys.mem[i]} MB</p></div>`).join('')}</div>`,'Memory Usage','Node.js process memory')}
+  <div data-sp="eps">${card(`<div class="ow"><table class="tbl"><thead><tr><th class="th">Endpoint</th><th class="th">Requests</th><th class="th">Error Rate</th><th class="th">Avg Latency</th></tr></thead><tbody>${h.eps.map(e=>`<tr><td class="td mono">${e[0]}</td><td class="td">${e[1]}</td><td class="td">${badge(e[2]<5?'green':'yellow',e[2].toFixed(2)+'%')}</td><td class="td">${e[3].toFixed(0)}ms</td></tr>`).join('')}</tbody></table></div>`,'Top API Endpoints (Last Hour)','Most frequently accessed endpoints')}</div>
+  <p class="sm" style="color:#4b5563;text-align:center">Last updated: ${new Date(NOW).toLocaleString()}</p></div>`};
+PAGES.audit=S=>{const rows=AUDIT.filter(a=>!S.audit||a.a===S.audit);
+  return `<div class="sy8"><div class="flex ic jb"><div><h1 class="h1c">Audit Logs</h1><p class="subg3">Track all system activities and changes</p></div>
+  <div class="flex ic g3" data-sp="filter">${ic('filter',20,'','color:#4b5563')}<div style="width:230px"><select class="input" data-i="audit" aria-label="Filter by action">${AUDACT.map(o=>`<option value="${o[0]}" ${o[0]===S.audit?'selected':''}>${o[1]}</option>`).join('')}</select></div></div></div>
+  <div class="card p6" data-sp="logs"><div class="sy3">${rows.map(l=>`<div class="row" style="align-items:flex-start;justify-content:flex-start;gap:16px;padding:16px;background:#f9fafb"><div style="padding:8px;background:#fff;border-radius:8px">${ic('file-text',20,'','color:#4b5563')}</div><div class="f1"><div class="flex ic g3 mb2">${badge(AUDCOL[l.a]||'gray',l.a.replace(/_/g,' '))}<span class="sm" style="color:#4b5563">${fdate(NOW-l.ago*60000)}</span></div>
+  <div class="sy2" style="margin-top:0">${l.user?`<p class="sm" style="color:#374151"><span class="fm">User:</span> ${l.user}</p>`:''}${l.ten?`<p class="sm" style="color:#374151"><span class="fm">Tenant:</span> ${l.ten}</p>`:''}${l.rt?`<p class="sm" style="color:#374151"><span class="fm">Resource:</span> ${l.rt} (${l.rid})</p>`:''}${l.ip?`<p class="sm" style="color:#4b5563">IP: ${l.ip}</p>`:''}
+  ${l.ch?`<details class="mt2"><summary class="sm" style="color:#0284c7">View Changes</summary><pre class="mono" style="margin:8px 0 0;font-size:12px;line-height:16px;background:#fff;padding:8px;border-radius:4px;border:1px solid #e5e7eb;overflow-x:auto">${esc(JSON.stringify(l.ch,null,2))}</pre></details>`:''}</div></div></div>`).join('')}</div></div></div>`};
+/* ============ App shell ============ */
+const NAV={tenant:[['Overview','overview','layout-dashboard'],['Users','users','user-circle'],['Orders','orders','shopping-cart'],['Returns','returns','rotate-ccw'],['API Keys','apikeys','key'],['Analytics','analytics','bar-chart-3'],['Map View','map','map-pin'],['Team','team','users-round'],['Roles & Permissions','roles','shield'],['Settings','settings','settings']],
+ admin:[['Overview','overview','layout-dashboard'],['Tenants','tenants','building-2'],['Platform Users','pusers','users'],['Map View','map','map-pin'],['Roles & Permissions','roles','shield'],['System Health','system','activity'],['Audit Logs','audit','file-text']]};
+const SLUG={overview:'overview',users:'users',orders:'orders',returns:'returns',apikeys:'api-keys',analytics:'analytics',settings:'settings',system:'system-health',audit:'audit-logs',map:'map-view',team:'team',roles:'roles',tenants:'tenants',pusers:'platform-users'};
+const WHO={tenant:{name:'ShopNova Admin',email:'admin@shopnova.com'},admin:{name:'Platform Admin',email:'admin@antm.ai'}};
+function newState(role,page,inter){return{role,page,days:'30',q:{users:'',orders:'',returns:''},st:{orders:'',returns:''},ty:'',pg:{users:1,orders:1,returns:1},audit:'',modal:false,form:{name:'',scopes:['ingest:orders','ingest:claims','read:scores'],tier:'standard'},formErr:'',loading:false,inter,cfg:{auto_approve_threshold:600,manual_review_threshold:450,max_claim_amount:10000,claim_time_window:30}}}
+function shell(S){const w=WHO[S.role],ini=w.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  let body;if(PAGES[S.page])body=PAGES[S.page](S);else body=`<div class="sy6"><div><h1 class="h1a">${NAV[S.role].find(n=>n[1]===S.page)[0]}</h1></div><div class="stub"><div style="margin-bottom:12px;color:#94a3b8">${ic('file-text',32)}</div><p class="fs" style="color:#0a1528;font-size:16px">This page is part of the product but is not recreated in this tour.</p><p style="margin-top:6px;max-width:520px">Its layout was not transcribed (it relies on a live map or extra detail views). See the evidence report for what was left out.</p></div></div>`;
+  return `<aside class="sb"><div class="lg">${logo(110,true)}</div><nav data-sp="nav">${NAV[S.role].map(n=>`<a class="nv-i ${n[1]===S.page?'act':''}" data-a="nav" data-p="${n[1]}" role="link" tabindex="0">${ic(n[2],18)}<span>${n[0]}</span></a>`).join('')}</nav>
+  <div class="ft"><div class="flex ic" style="gap:10px;padding:0 4px"><div style="width:28px;height:28px;border-radius:9999px;background:#162d55;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#7c96c8;flex-shrink:0">${ini}</div><div class="f1 mw0"><div style="font-size:12px;line-height:16px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.name}</div><div style="font-size:10px;line-height:12px;color:#4e6fad;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.email}</div></div><button title="Sign out" aria-label="Sign out" data-a="stub" data-m="Sign out is not available in this offline demo." style="color:#4e6fad">${ic('log-out',14)}</button></div></div></aside>
+  <div class="col"><header class="hd"><div><div class="flex ic g2 sm" style="color:#4b5563">${ic('user',14,'','color:#9ca3af')}<span>${w.name}</span></div><button class="flex ic xs" style="gap:6px;color:#6b7280" data-a="stub" data-m="Sign out is not available in this offline demo.">${ic('log-out',13)}Sign out</button></div></header><main class="main">${body}</main></div>${S.modal?apiModal(S):''}`}
+function mount(root,S,cls=''){
+  root.className='app '+cls;root.style.position='relative';
+  const render=()=>{const m=$('.main',root),top=m?m.scrollTop:0,fid=document.activeElement&&root.contains(document.activeElement)?document.activeElement.id:null,ss=document.activeElement&&document.activeElement.selectionStart;
+    root.innerHTML=shell(S);const m2=$('.main',root);if(m2)m2.scrollTop=top;
+    if(fid){const e=document.getElementById(fid);if(e){e.focus();if(ss!=null&&e.setSelectionRange&&e.type==='text')try{e.setSelectionRange(ss,ss)}catch(_){}}}
+    if(!S.loading)runCounts(root)};
+  const setPage=p=>{S.page=p;S.modal=false;S.loading=false;if(S.inter&&!REDUCED){S.loading=true;render();clearTimeout(S.t);S.t=setTimeout(()=>{S.loading=false;render()},450)}else render();S.onPage&&S.onPage(p)};
+  const setDeep=(o,path,v)=>{const k=path.split('.');if(k.length===1)o[k[0]]=v;else o[k[0]][k[1]]=v};
+  const upd=(path,v)=>{setDeep(S,path,v);if(/^(q|st)\./.test(path)||path==='ty'){const key=path.split('.')[1];if(key)S.pg[key]=1;else S.pg.returns=1}
+    if(path==='days'&&S.inter&&!REDUCED&&S.page!=='settings'){S.loading=true;render();clearTimeout(S.t);S.t=setTimeout(()=>{S.loading=false;render()},450)}else render()};
+  root.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t||t.tagName==='FORM')return;const a=t.dataset.a;
+    if(a==='nav')setPage(t.dataset.p);else if(a==='stub'){toast(t.dataset.m)}
+    else if(a==='pg'){S.pg[t.dataset.k]+=+t.dataset.d;render()}
+    else if(a==='openModal'){S.modal=true;render()}else if(a==='closeModal'){S.modal=false;S.formErr='';render()}
+    else if(a==='scope'){const v=t.dataset.v,s=S.form.scopes;S.form.scopes=s.includes(v)?s.filter(x=>x!==v):[...s,v];render()}});
+  root.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.nv-i')){e.preventDefault();e.target.click()}});
+  root.addEventListener('input',e=>{const t=e.target,p=t.dataset.i;if(p&&t.tagName==='INPUT'){setDeep(S,p,t.type==='number'?t.value:t.value);if(p==='form.name'){if(S.formErr&&t.value.trim()){S.formErr='';render()}return}if(p.startsWith('cfg.'))return;if(/^(q)\./.test(p)){S.pg[p.split('.')[1]]=1;render()}}});
+  root.addEventListener('change',e=>{const t=e.target,p=t.dataset.i;if(p&&t.tagName==='SELECT')upd(p,t.value)});
+  root.addEventListener('submit',e=>{e.preventDefault();if(!S.form.name.trim()){S.formErr='Name is required';render();$('#kn',root)&&$('#kn',root).focus();return}
+    S.modal=false;S.formErr='';render();toast('Preview only: no API key is created in this demo.')});
+  S.render=render;S.setPage=setPage;render();return S}
+/* ============ count-up ============ */
+function runCounts(root){$$('[data-count]',root).forEach(el=>{const to=+el.dataset.count,fin=()=>{el.textContent=to.toLocaleString()};
+  if(REDUCED){fin();return}let t0=null,done=false;const f=ts=>{if(done)return;t0=t0||ts;const p=Math.min((ts-t0)/900,1);el.textContent=Math.round(to*(1-Math.pow(1-p,3))).toLocaleString();if(p<1)requestAnimationFrame(f);else done=true};
+  requestAnimationFrame(f);setTimeout(()=>{done=true;fin()},1200)})}
+/* ============ slides ============ */
+const SL=[];
+const slideDefs=[
+ {id:'welcome',t:'Welcome'},
+ {id:'overview',t:'Overview',page:'overview',role:'tenant',steps:[
+   {cap:['The Overview page','A merchant team opens the product here to see how orders and claims are moving. All values in this tour are illustrative sample data.']},
+   {sel:'nav',cap:['One place for everything','The left menu lists every area a merchant team uses: customers, orders, returns, access keys, analytics and settings.']},
+   {sel:'range',cap:['Choose a time window','Switch between the last 7, 30 or 90 days. The numbers below follow your choice.'],act:s=>{s.days='7'}},
+   {sel:'metrics',cap:['Four headline numbers','Total Orders, Total Claims, Pending Claims and ANTM Score Users give an instant read on activity.'],act:s=>{s.days='30'}},
+   {sel:'rate',cap:['Claim Rate','Claims as a share of orders. The panel turns red and says “Above average” when the rate passes 10%.']},
+   {sel:'recent',cap:['Latest activity','The most recent orders and claims, each with its value and status badge, so nothing needs a search.']}]},
+ {id:'users',t:'Users',page:'users',role:'tenant',steps:[
+   {cap:['Users','Every shopper the merchant has scored appears here with an ANTM Score from 0 to 1000.']},
+   {sel:'search',cap:['Find a shopper fast','Type in the search box to narrow the list.'],act:s=>{s.q.users=''}},
+   {sel:'table',cap:['Score, status and history','A coloured bar shows trust at a glance: green for 700 and above, amber for 400 and above, red below that. Status shows active, flagged or blocked.']},
+   {sel:'search',cap:['Search in action','Typing “USR-20” filters the list live.'],act:s=>{s.q.users='USR-20'}}]},
+ {id:'orders',t:'Orders',page:'orders',role:'tenant',steps:[
+   {cap:['Orders','All orders from the merchant’s store, with each shopper’s ANTM Score alongside.']},
+   {sel:'filters',cap:['Search and status filter','Look up by order or user ID, or filter by Created, Delivered or Cancelled.'],act:s=>{s.st.orders='';}},
+   {sel:'table',cap:['Risk beside every order','A green shield marks high-trust shoppers (700+) and a red warning marks low scores (below 400). Orders with claims show the count in amber.']},
+   {sel:'filters',cap:['Filter applied','Here only Cancelled orders are shown.'],act:s=>{s.st.orders='cancelled'}}]},
+ {id:'returns',t:'Returns & Claims',page:'returns',role:'tenant',steps:[
+   {cap:['Returns & Claims','Every return request and claim in one list, with the shopper’s score next to it.']},
+   {sel:'filters',cap:['Three ways to narrow','Search, filter by status (Pending, Approved, Rejected, Partial) and filter by claim type.'],act:s=>{s.st.returns=''}},
+   {sel:'table',cap:['Flags that need attention','A “Fraud Flag” label and a red marker call out claims worth a closer look.']},
+   {sel:'filters',cap:['Pending claims only','The same list filtered to claims still waiting for a decision.'],act:s=>{s.st.returns='pending'}}]},
+ {id:'analytics',t:'Analytics',page:'analytics',role:'tenant',steps:[
+   {cap:['Analytics','Trends across orders, claims and the shopper score mix, with the same 7, 30 and 90 day windows.']},
+   {sel:'orders',cap:['Orders over time','Daily order count and value as two lines. Hover any day for exact values.']},
+   {sel:'claims',cap:['Claims over time','Daily claim count and value, so spikes are easy to spot.']},
+   {sel:'dist',cap:['What claims are about','Claim types as a share of all claims, and orders by product category.']},
+   {sel:'score',cap:['ANTM Score distribution','How many shoppers fall in each score band, from 0–200 up to 801–1000.']}]},
+ {id:'api-keys',t:'API Keys',page:'apikeys',role:'tenant',steps:[
+   {cap:['API Keys','This is how a merchant connects its own systems to ANTM.ai securely.']},
+   {sel:'keys',cap:['Each key at a glance','Name, status, plan tier, who created it, what it is allowed to do and when it was last used.']},
+   {sel:'create',cap:['Create a new key','The button opens a form to name the key, pick what it may do and choose a rate tier.']},
+   {sel:'modal',cap:['Create API Key form','Name is required, and at least one permission must stay ticked. In this tour, submitting creates nothing.'],act:s=>{s.modal=true}}]},
+ {id:'settings',t:'Settings',page:'settings',role:'tenant',steps:[
+   {cap:['Settings','Merchant-level controls for connected stores and automatic decisions.']},
+   {sel:'shopify',cap:['Shopify Integration','Shows the connected Shopify store. Here it shows the product’s own “not connected” state.']},
+   {sel:'risk',cap:['Risk Thresholds','Four editable rules: auto-approve score, manual-review score, maximum auto-approved claim and claim time window. Values shown are the product’s default entries.']}]},
+ {id:'system-health',t:'System Health',page:'system',role:'admin',steps:[
+   {cap:['Platform admin: System Health','Platform administrators see a second menu. This page tracks how healthy the service is. Numbers here are illustrative.']},
+   {sel:'status',cap:['Three health checks','Database response time, API error rate and average API speed.']},
+   {sel:'tenants',cap:['Platform size','Counts of merchants (tenants), users and scored shoppers.']},
+   {sel:'eps',cap:['Busiest connections','The most-used connections in the last hour, with error rate and speed.']}]},
+ {id:'audit-logs',t:'Audit Logs',page:'audit',role:'admin',steps:[
+   {cap:['Audit Logs','A running record of who did what, and when.']},
+   {sel:'filter',cap:['Filter by action','Narrow to logins, key creation, key revocation, merchant creation or status changes.']},
+   {sel:'logs',cap:['A trail you can inspect','Each entry shows the user, merchant, resource and address, with expandable “View Changes”.']}]},
+ {id:'your-turn',t:'Your turn',inter:true},
+ {id:'close',t:'Close'}];
+const N=slideDefs.length;
+const stage=$('#stage');
+slideDefs.forEach((d,i)=>{const el=document.createElement('section');el.className='slide';el.id='s'+i;el.setAttribute('aria-label',d.t);stage.appendChild(el);d.el=el;d.idx=i;d.steps=d.steps||[]});
+function capHTML(d,k){const st=d.steps[k];return `<h4>${d.t} · step ${k+1} of ${d.steps.length}</h4><div class="ttl">${st.cap[0]}</div><div>${st.cap[1]}</div><div class="nv"><button class="deckbtn ghost" data-g="-1">← Back</button><span>${k+1} / ${d.steps.length}</span><button class="deckbtn" data-g="1">Next →</button></div>`}
+function build(d){const el=d.el;
+  if(d.id==='welcome'){el.innerHTML=`<div class="hero sl-c" style="background:linear-gradient(135deg,#0e1f3c 0%,#162d55 50%,#1e3a6e 100%);color:#fff"><div style="transform:scale(1.9);transform-origin:center;margin-bottom:56px">${logo(110,true)}</div>
+   <h1 style="font-size:56px;line-height:1.1;font-weight:700;letter-spacing:-.025em">Good Returns: Product Tour</h1>
+   <p style="font-size:21px;line-height:1.5;color:#adbfdf;max-width:760px;margin:20px 0 40px">Behavioral risk scoring for returns and refund decisions: see how a merchant team and a platform team use ANTM.ai every day.</p>
+   <button class="start" id="startBtn">Start the tour &rarr;</button><p style="margin-top:28px;font-size:13px;color:#7c96c8">Use ← → to move, F for fullscreen. Screens are rebuilt from the product’s source code and filled with illustrative sample data.</p></div>`;
+   $('#startBtn',el).onclick=()=>show(1,0);return}
+  if(d.id==='close'){const it=[['0 – 1000','A single ANTM Score per shopper, grouped into five score bands in analytics.'],['One list for claims','Returns & Claims with status, type, amount and the shopper’s score side by side.'],['Merchant-set rules','Editable thresholds for auto-approval, manual review, claim size and claim window.'],['Control and traceability','API keys with scoped permissions, and audit logs of logins, key changes and status changes.']];
+   el.innerHTML=`<div class="hero sl-c" style="background:linear-gradient(135deg,#0e1f3c 0%,#162d55 50%,#1e3a6e 100%);color:#fff"><div style="margin-bottom:28px">${logo(110,true)}</div><h2 style="font-size:40px;font-weight:700;letter-spacing:-.025em">What the product already delivers</h2>
+   <p style="font-size:18px;color:#adbfdf;margin:12px 0 32px;max-width:760px">Everything below exists in the product today, according to its source code.</p>
+   <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;width:900px;text-align:left">${it.map(x=>`<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:20px"><div style="font-size:20px;font-weight:700;color:#6ee7b7">${x[0]}</div><div style="font-size:15px;color:#d6dfef;margin-top:6px;line-height:1.45">${x[1]}</div></div>`).join('')}</div>
+   <p style="margin-top:26px;font-size:13px;color:#7c96c8;max-width:820px">This tour shows how the product works, using illustrative sample data. It makes no claim about savings, adoption or business results.</p>
+   <button class="start" style="margin-top:20px;padding:10px 28px;font-size:16px" id="againBtn">Replay the tour</button></div>`;
+   $('#againBtn',el).onclick=()=>show(0,0);return}
+  if(d.id==='your-turn'){el.innerHTML=`<div class="hint"><span><b>Your turn.</b> Click any menu item, search, filter, page through lists and open “Create API Key”. All data is illustrative sample data.</span><div class="seg" role="group" aria-label="View as"><button data-r="tenant" class="on">Merchant view</button><button data-r="admin">Platform admin view</button></div></div><div id="yt"></div>`;
+   const S=newState('tenant','overview',true);d.S=S;mount($('#yt',el),S,'short');
+   S.onPage=p=>{if(cur===d.idx)setHash()};
+   $$('.seg button',el).forEach(b=>b.onclick=()=>{S.role=b.dataset.r;S.page='overview';S.modal=false;$$('.seg button',el).forEach(x=>x.classList.toggle('on',x===b));S.setPage('overview')});
+   return}
+  /* showcase */
+  el.innerHTML=`<div class="noscroll" id="a${d.idx}"></div><div class="spot"></div><div class="cap" role="dialog"></div><div class="chip">Illustrative sample data, not real results</div>`;
+  const S=newState(d.role,d.page,false);d.S=S;mount($('#a'+d.idx,el),S,'noscroll');
+  el.addEventListener('click',e=>{const g=e.target.closest('[data-g]');if(g)go(+g.dataset.g)})}
+function applyStep(d,k){const el=d.el,S=d.S,st=d.steps[k];
+  /* reset state per step, then act */
+  Object.assign(S,newState(d.role,d.page,false),{render:S.render,setPage:S.setPage,onPage:S.onPage});
+  S.modal=false;st.act&&st.act(S);if(d.id==='audit-logs'&&k===1)S.audit='';
+  /* earlier steps' acts persist in order: replay */
+  for(let i=0;i<k;i++){const a=d.steps[i].act;if(a&&!(d.steps[k].act)){/* keep latest only */}}
+  S.render();const cap=$('.cap',el),sp=$('.spot',el);cap.innerHTML=capHTML(d,k);
+  const root=$('#a'+d.idx,el),main=$('.main',root);main.scrollTop=0;
+  const done=()=>{
+    if(!st.sel){sp.classList.remove('on');sp.classList.add('none');cap.style.top='auto';cap.style.bottom='64px';return}
+    const t=$(`[data-sp="${st.sel}"]`,el);if(!t)return;const sc=stage.getBoundingClientRect().width/1280;
+    if(st.sel!=='modal'&&st.sel!=='nav'){const r0=t.getBoundingClientRect(),m0=main.getBoundingClientRect();const off=(r0.top-m0.top)/sc;if(off>380||off<0)main.scrollTop+=off-40}
+    requestAnimationFrame(()=>{const r=t.getBoundingClientRect(),s0=stage.getBoundingClientRect();
+      const x=(r.left-s0.left)/sc,y=(r.top-s0.top)/sc,w=r.width/sc,h=Math.min(r.height/sc,640);
+      sp.className='spot on';Object.assign(sp.style,{left:(x-6)+'px',top:(y-6)+'px',width:(w+12)+'px',height:(Math.min(h,720-y)+12)+'px'});
+      const mid=y+h/2;if(mid>360||y+h>560){cap.style.top='24px';cap.style.bottom='auto'}else{cap.style.top='auto';cap.style.bottom='64px'}
+      cap.style.left=(x+w/2>640&&w<700?'60px':'425px')})};
+  requestAnimationFrame(done)}
+/* ============ navigation ============ */
+let cur=0,step=0;
+const dotsEl=$('#dots');slideDefs.forEach((d,i)=>{const b=document.createElement('i');b.title=d.t;b.onclick=()=>show(i,0);dotsEl.appendChild(b)});
+const built={};
+function show(i,k){i=Math.max(0,Math.min(N-1,i));const d=slideDefs[i];if(!built[i]){build(d);built[i]=1}
+  slideDefs.forEach((x,j)=>x.el.classList.toggle('on',j===i));cur=i;step=Math.max(0,Math.min(Math.max(d.steps.length-1,0),k||0));
+  if(d.steps.length)applyStep(d,step);else if(d.S&&d.S.render)d.S.render();
+  if(d.S&&d.S.render&&!d.steps.length)runCounts(d.el);
+  if(d.steps.length)runCounts(d.el);
+  upd()}
+function go(dir){const d=slideDefs[cur];if(dir>0){if(step<d.steps.length-1){step++;applyStep(d,step);upd()}else if(cur<N-1)show(cur+1,0)}else{if(step>0){step--;applyStep(d,step);upd()}else if(cur>0){const p=slideDefs[cur-1];show(cur-1,0)}}}
+function setHash(){const d=slideDefs[cur];let h='#'+cur+(d.steps.length?'.'+step:'');if(d.id==='your-turn'&&d.S)h+='&v='+(SLUG[d.S.page]||d.S.page);try{history.replaceState(null,'',h)}catch(_){location.hash=h}}
+function upd(){$$('#dots i').forEach((e,i)=>{e.className=i===cur?'on':i<cur?'done':''});$('#cnt').textContent=(cur+1)+' / '+N+' · '+slideDefs[cur].t;$('#prog').style.width=((cur+1)/N*100)+'%';$('#bBack').disabled=cur===0&&step===0;$('#bNext').disabled=cur===N-1&&step>=slideDefs[cur].steps.length-1;setHash()}
+$('#bBack').onclick=()=>go(-1);$('#bNext').onclick=()=>go(1);
+function fs(){const e=document.documentElement;if(!document.fullscreenElement)e.requestFullscreen&&e.requestFullscreen().catch(()=>{});else document.exitFullscreen&&document.exitFullscreen()}
+$('#bFs').onclick=fs;
+document.addEventListener('keydown',e=>{const t=e.target;if(/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)&&e.key!=='Escape')return;if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='ArrowRight'){go(1)}else if(e.key==='ArrowLeft'){go(-1)}else if(e.key==='f'||e.key==='F'){fs()}
+  else if(e.key==='Escape'){const d=slideDefs[cur];if(d.S&&d.S.modal&&d.id==='your-turn'){d.S.modal=false;d.S.render()}else if(document.fullscreenElement)document.exitFullscreen()}});
+let tx=null,ty=null;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+document.addEventListener('touchend',e=>{if(tx==null)return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;tx=null;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)go(dx<0?1:-1)},{passive:true});
+function fit(){const w=$('#wrap'),s=Math.min(w.clientWidth/1280,w.clientHeight/720);stage.style.transform=`scale(${s})`;stage.style.left=((w.clientWidth-1280*s)/2)+'px';stage.style.top=((w.clientHeight-720*s)/2)+'px'}
+addEventListener('resize',()=>{fit();if(slideDefs[cur].steps.length&&built[cur])applyStep(slideDefs[cur],step)});
+/* tooltip + toast */
+const tip=$('#tip');document.addEventListener('mousemove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t){tip.style.display='none';return}tip.textContent=t.getAttribute('data-tip');tip.style.display='block';const r=$('#wrap').getBoundingClientRect();let x=e.clientX-r.left+14,y=e.clientY-r.top+14;if(x+tip.offsetWidth>r.width-4)x=e.clientX-r.left-tip.offsetWidth-14;tip.style.left=x+'px';tip.style.top=y+'px'});
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+/* boot: deep link #slide.step&v=slug */
+fit();
+(function(){const m=/^#(\d+)(?:\.(\d+))?(?:&v=([\w-]+))?/.exec(location.hash);let i=0,k=0,v=null;if(m){i=+m[1];k=+(m[2]||0);v=m[3]}
+  if(v&&slideDefs[i]&&slideDefs[i].id==='your-turn'){build(slideDefs[i]);built[i]=1;const S=slideDefs[i].S;const pg=Object.keys(SLUG).find(x=>SLUG[x]===v);if(pg){const adm=['system','audit','tenants','pusers'].includes(pg);if(adm){S.role='admin';$$('.seg button',slideDefs[i].el).forEach(b=>b.classList.toggle('on',b.dataset.r==='admin'))}S.page=pg;S.render()}}
+  show(i,k)})();
+</script>
+</body>
+</html>

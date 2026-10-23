@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>c0py.me: Product Tour</title>
+<!--
+  Deep links: #<slide>.<step>&v=<slug>   e.g. #2.3&v=overview  (slide 1-6, step 0 = no spotlight)
+  Slide 2 steps 1-5 = spotlight tour. Slide 5 slug = page: home | share | history | safeguards. Optional &theme=dark (slide 5 only).
+  Self-contained: no external fonts, scripts, images or network requests.
+-->
+<style>
+:root{--ink:#2C1B12;--accent:#A6521B;--gold:#F6C148;--card:rgba(255,255,255,.82);--border:rgba(166,82,27,.2);--th:rgba(255,237,213,.7);--muted:rgba(44,27,18,.68);--soft:rgba(166,82,27,.1);--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--bg:linear-gradient(135deg,#fffbeb,#ffedd5)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1f1510;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;display:none;padding:0 0 64px;flex-direction:column;overflow:hidden}
+.slide.active{display:flex}
+.body{flex:1;min-height:0;padding:22px 40px 0;overflow:hidden;position:relative}
+h1,h2,h3,p{margin:0}
+.glass{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 25px rgba(120,60,20,.12);backdrop-filter:blur(12px)}
+.grad{background:linear-gradient(90deg,#ea580c,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{font:inherit;cursor:pointer;border:1px solid rgba(255,255,255,.6);border-radius:14px;padding:12px 26px;font-weight:700;color:var(--ink);background:linear-gradient(135deg,rgba(246,193,72,.9),rgba(166,82,27,.85));box-shadow:0 8px 20px rgba(166,82,27,.3);display:inline-flex;align-items:center;gap:10px;transition:transform .15s}
+.btn:hover{transform:scale(1.04)}.btn:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.btn.ghost{background:var(--soft);box-shadow:none;border-color:var(--border);color:var(--accent)}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.blob{position:absolute;width:380px;height:380px;border-radius:50%;background:rgba(251,146,60,.2);filter:blur(60px);animation:float 10s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(40px)}}
+@keyframes pulse{0%{r:6;opacity:.7}100%{r:30;opacity:0}}
+/* bar */
+#bar{position:absolute;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:14px;padding:0 24px;background:rgba(255,255,255,.85);border-top:1px solid var(--border);z-index:50}
+#bar .dots{flex:1;display:flex;gap:8px;justify-content:center;align-items:center}
+#bar .dot{width:34px;height:8px;border-radius:5px;background:rgba(166,82,27,.2);border:0;padding:0;cursor:pointer}
+#bar .dot.on{background:var(--accent)}#bar .dot.done{background:rgba(166,82,27,.5)}
+#bar .pc{font-size:13px;color:var(--muted);min-width:90px;text-align:center}
+/* overview */
+.pane{flex:1;overflow:auto;padding:18px 40px 30px;position:relative}
+.hero{text-align:center;padding:30px 0 20px}
+.logo-ring{width:120px;height:120px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);border:1px solid #fff;box-shadow:0 8px 20px rgba(120,60,20,.15)}
+.hero h1{font-size:60px;font-weight:800;letter-spacing:-.02em}
+.tag{font-size:24px;color:rgba(38,38,38,.8);margin:6px 0}.tag2{font-size:18px;color:#c2570c;margin-bottom:22px}
+.stats{display:flex;gap:16px;justify-content:center;margin:6px 0 26px}
+.stat{padding:14px 28px;text-align:center;min-width:180px}.stat b{display:block;font-size:40px;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:26px}
+.fc{padding:20px;text-align:center}
+.ic{width:52px;height:52px;border-radius:50%;margin:0 auto 12px;background:linear-gradient(135deg,#f97316,#f59e0b);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 6px 14px rgba(249,115,22,.3)}
+.fc h3{font-size:19px;margin-bottom:6px}.fc p{font-size:14.5px;line-height:1.45;color:var(--muted)}
+.sec-t{font-size:30px;text-align:center;margin:8px 0 18px;font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.st{text-align:center;padding:6px 14px}.num{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;background:linear-gradient(135deg,#f97316,#fbbf24);color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.st h3{font-size:18px;margin-bottom:6px}.st p{font-size:14.5px;color:var(--muted);line-height:1.45}
+#spot{position:absolute;z-index:40;border-radius:16px;box-shadow:0 0 0 4000px rgba(30,15,8,.62),0 0 0 3px var(--gold);pointer-events:none;display:none;transition:all .35s}
+#cap{position:absolute;z-index:45;left:50%;width:560px;margin-left:-280px;padding:16px 20px;display:none;background:#fff}
+#cap .t{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+#cap p{font-size:17px;line-height:1.4;margin:4px 0 12px}#cap .r{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+/* app replica */
+.hdr{display:flex;align-items:center;gap:12px;padding:10px 18px;margin-bottom:12px}
+.hdr h1{font-size:24px}.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:12px;background:var(--soft);color:var(--accent);font-size:13px;font-weight:600;border:0;font-family:inherit}
+.stt{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-left:auto}.stt i{width:9px;height:9px;border-radius:50%;background:#a8a29e}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:8px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.call{padding:10px 16px;margin-bottom:12px;border-left:5px solid var(--gold);font-size:14.5px;line-height:1.45;display:flex;gap:10px;align-items:center}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:12px}
+.pn{padding:14px 16px;min-height:0}.pn h2{font-size:17px;margin-bottom:8px}
+.dz{border:2px dashed var(--border);border-radius:14px;padding:12px;text-align:center;font-size:13.5px;color:var(--muted);background:var(--soft)}
+.fr{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;padding:6px 10px;margin-top:6px;border-radius:10px;background:var(--soft)}
+.pr{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:10px;margin-top:6px;background:var(--soft);font-size:14px;border:2px solid transparent;font-family:inherit;color:var(--ink);width:100%;text-align:left}
+button.pr{cursor:pointer}button.pr.sel{border-color:var(--accent);background:rgba(246,193,72,.28)}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}th{background:var(--th);text-align:left;padding:7px 12px;font-weight:600;white-space:nowrap}td{padding:6px 12px;border-top:1px solid var(--border);white-space:nowrap}
+th button{all:unset;cursor:pointer;font-weight:600}th button:focus-visible{outline:3px solid #2563eb}
+.s-ok{color:var(--ok);font-weight:600}.s-bad{color:var(--bad);font-weight:600}.s-warn{color:var(--warn);font-weight:600}
+/* charts */
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:18px}
+.chart svg{width:100%;height:auto;display:block}.main .chart svg{max-height:290px}.chart text{fill:var(--ink);font-family:inherit}
+.leg{display:flex;gap:16px;font-size:13.5px;margin:2px 0 6px;flex-wrap:wrap}.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.sl h3{font-size:15px;margin:10px 0 2px}.sl p{font-size:13.5px;color:var(--muted);line-height:1.4}
+/* app slide */
+#app{height:100%;display:flex;flex-direction:column;padding:0 0 0;background:var(--bg);color:var(--ink)}
+#app.dark{--ink:#F7ECE0;--accent:#F4A860;--card:rgba(48,30,20,.88);--border:rgba(246,193,72,.28);--th:rgba(246,193,72,.14);--muted:rgba(247,236,224,.74);--soft:rgba(246,193,72,.12);--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--bg:linear-gradient(135deg,#1c120c,#2a1a10)}
+#app.dark .hdr,#app.dark .glass{box-shadow:none}
+.hint{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:8px 14px;border-radius:12px;background:#fef3c7;color:#78350f;font-size:14px;border:1px solid #fcd34d}
+.hint button{margin-left:auto;all:unset;cursor:pointer;font-weight:700;padding:2px 8px}
+.shell{display:flex;gap:16px;flex:1;min-height:0}
+.side{width:210px;flex:none;padding:12px;display:flex;flex-direction:column;gap:6px}
+.nv{all:unset;box-sizing:border-box;cursor:pointer;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:600;color:var(--accent);display:flex;gap:10px;align-items:center}
+.nv:hover{background:var(--soft)}.nv.on{background:linear-gradient(135deg,rgba(246,193,72,.75),rgba(166,82,27,.75));color:#2C1B12}.nv:focus-visible{outline:3px solid #2563eb}
+.main{flex:1;min-width:0;overflow:auto;padding:2px 4px 8px 2px}
+.worlds{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.wd{all:unset;cursor:pointer;padding:9px 16px;border-radius:12px;background:var(--soft);font-weight:600;font-size:14px;border:2px solid transparent;color:var(--ink)}.wd.on{border-color:var(--accent);background:rgba(246,193,72,.3)}.wd:focus-visible{outline:3px solid #2563eb}
+.fcl{cursor:pointer;font:inherit;color:inherit;text-align:center}.fcl:hover{transform:translateY(-2px)}
+.fcl .go{display:block;margin-top:8px;font-size:13px;font-weight:700;color:var(--accent)}
+.ctl{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.ctl input,.ctl select{font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}.seg button{font:inherit;font-size:13.5px;padding:7px 14px;border:0;background:transparent;color:var(--ink);cursor:pointer}.seg button.on{background:var(--accent);color:#fff}
+#app.dark .seg button.on{color:#1c120c}
+#modal{position:absolute;inset:0;background:rgba(20,10,5,.6);z-index:60;display:none;align-items:center;justify-content:center}
+#modal .box{width:480px;max-width:92%;padding:22px;background:#fff;color:#2C1B12;border-radius:16px}
+#modal.open{display:flex}#modal h2{font-size:21px;margin-bottom:6px}#modal p{font-size:14.5px;color:#57534e;margin-bottom:10px}
+#toast{position:absolute;left:50%;top:18px;transform:translateX(-50%);background:#2C1B12;color:#fff;padding:10px 18px;border-radius:12px;font-size:14px;z-index:70;display:none;max-width:90%}
+/* welcome / close */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 80px;position:relative;z-index:1}
+.center h1{font-size:64px;font-weight:800;margin:10px 0}.center .lead{font-size:24px;max-width:860px;line-height:1.4;color:var(--muted);margin-bottom:34px}
+.btn.big{font-size:22px;padding:16px 44px}
+.cl{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}.cl .glass{padding:18px;font-size:15px;line-height:1.45}.cl h3{font-size:18px;margin-bottom:6px;color:var(--accent)}
+.note{font-size:13.5px;color:var(--muted);line-height:1.45}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* narrow screens: no scaling, vertical reflow */
+@media (max-width:760px){
+ html,body{overflow:hidden}
+ #stage{position:fixed;inset:0;width:auto;height:auto;transform:none!important;left:0;top:0}
+ .body{overflow-y:auto;padding:14px 14px 0}.pane{padding:0 14px 24px}
+ .hero h1,.center h1{font-size:38px}.tag{font-size:19px}.center .lead{font-size:18px}.center{padding:0 22px}
+ .stats{flex-direction:column;align-items:center}.feat,.steps,.three,.two,.cl{grid-template-columns:1fr}
+ .hdr{flex-wrap:wrap}.stt{margin-left:0}
+ .shell{flex-direction:column;overflow-y:auto}.side{width:auto;flex-direction:row;flex-wrap:wrap}.nv{padding:8px 10px;font-size:14px}.main{overflow:visible;flex:none}
+ #cap{width:auto;left:12px;right:12px;margin-left:0}
+ #bar{padding:0 10px;gap:6px}#bar .dot{width:18px}#bar .pc{min-width:0;font-size:12px}
+ .btn.sm{padding:7px 10px}#fs{display:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-lion" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#A6521B" stroke="#2C1B12" stroke-width="2"/><circle cx="50" cy="55" r="28" fill="#F6C148" stroke="#2C1B12" stroke-width="1.5"/><circle cx="42" cy="48" r="3" fill="#2C1B12"/><circle cx="58" cy="48" r="3" fill="#2C1B12"/><circle cx="43" cy="47" r="1" fill="#fff"/><circle cx="59" cy="47" r="1" fill="#fff"/><path d="M50 55L47 58H53Z" fill="#2C1B12"/><g stroke="#2C1B12" stroke-width="2" fill="none" stroke-linecap="round"><path d="M50 60Q45 65 40 62"/><path d="M50 60Q55 65 60 62"/><path d="M30 52L38 54M30 58L38 58M62 54L70 52M62 58L70 58" stroke-width="1.5"/></g></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M16 11l2 2 4-4"/></g></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c3 3 4 6 4 10s-1 7-4 10c-3-3-4-6-4-10s1-7 4-10"/></g></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></g></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a5 5 0 010-10 6 6 0 0111-1 4.5 4.5 0 01-1 11M12 12v8M9 15l3-3 3 3"/></g></symbol>
+</defs></svg>
+
+<div id="stage" aria-live="polite">
+
+<!-- 1 WELCOME -->
+<section class="slide" data-id="welcome" aria-label="Welcome">
+ <div class="blob" style="top:-90px;left:-120px"></div><div class="blob" style="bottom:-90px;right:-120px;animation-duration:12s"></div>
+ <div class="center">
+  <div class="logo-ring" style="width:150px;height:150px"><svg width="112" height="112"><use href="#i-lion"/></svg></div>
+  <h1 class="grad" style="font-size:30px;margin:0;letter-spacing:.04em">c0py.me</h1>
+  <h1>c0py.me: Product Tour</h1>
+  <p class="lead">See how c0py.me lets people send files straight from one device to another, privately and without creating an account.</p>
+  <button class="btn big" data-go="2.0">Start the tour &rarr;</button>
+  <p class="note" style="margin-top:22px">Use the &larr; &rarr; keys, swipe, or the buttons below. Press F for full screen.</p>
+ </div>
+</section>
+
+<!-- 2 OVERVIEW -->
+<section class="slide" data-id="overview" aria-label="Application overview">
+ <div class="pane" id="pane2">
+  <div class="hero" data-tour="1">
+   <div class="logo-ring"><svg width="90" height="90"><use href="#i-lion"/></svg></div>
+   <h1 class="grad">c0py.me</h1>
+   <p class="tag">Private&nbsp;&bull;&nbsp;P2P&nbsp;&bull;&nbsp;Instant</p>
+   <p class="tag2">Share anything between your devices&nbsp;&mdash; zero servers, zero traces</p>
+   <button class="btn" data-tour="2" data-go="5.0&v=share"><svg width="22" height="22"><use href="#i-up"/></svg>Start Sharing &rarr;</button>
+  </div>
+  <div class="stats" data-tour="3">
+   <div class="glass stat"><b data-count="3">3</b><span>sharing worlds to choose from</span></div>
+   <div class="glass stat"><b data-count="6">6</b><span>headline features on the home page</span></div>
+   <div class="glass stat"><b data-count="3">3</b><span>steps from files to delivery</span></div>
+  </div>
+  <div class="feat" data-tour="4" id="feat2"></div>
+  <div data-tour="5"><h2 class="sec-t">How It Works</h2><div class="steps" id="steps2"></div></div>
+ </div>
+ <div id="spot"></div>
+ <div id="cap" class="glass"><div class="t" id="cap-t"></div><p id="cap-p"></p><div class="r"><button class="btn ghost sm" id="tb">&larr; Back</button><button class="btn sm" id="tn">Next &rarr;</button></div></div>
+</section>
+
+<!-- 3 SEND A FILE -->
+<section class="slide" data-id="send" aria-label="Sending a file">
+ <div class="body">
+  <div class="glass hdr"><svg width="38" height="38"><use href="#i-lion"/></svg><h1>c0py.me</h1><span class="pill">&#127757; Jungle</span><span class="badge">Sample view</span><span class="stt"><i></i>Not connected: illustrative layout</span></div>
+  <div class="glass call"><span style="font-size:22px">&#128161;</span><span><b>The sending screen.</b> Three panels guide one transfer: see who is nearby, pick files, pick a recipient. The recipient then sees the file details and approves it before anything is sent. Names and files below are <b>illustrative samples</b>.</span></div>
+  <div class="three">
+   <div class="glass pn"><h2>Lion's Den</h2>
+    <svg viewBox="0 0 300 150" width="100%" height="140" role="img" aria-label="Radar showing you in the middle and three nearby people"><g fill="none" stroke="rgba(166,82,27,.35)"><circle cx="150" cy="75" r="30"/><circle cx="150" cy="75" r="55"/><circle cx="150" cy="75" r="72"/></g><circle cx="150" cy="75" r="6" fill="#A6521B"><animate attributeName="r" values="6;30" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0" dur="2.4s" repeatCount="indefinite"/></circle>
+    <g font-size="12" text-anchor="middle"><circle cx="150" cy="75" r="14" fill="#F6C148" stroke="#2C1B12"/><text x="150" y="80" font-size="14">&#129409;</text><text x="150" y="112" font-weight="600" fill="#2C1B12">You</text>
+    <circle cx="72" cy="52" r="14" fill="#4ECDC4" stroke="#2C1B12"/><text x="72" y="57" font-size="14">&#129418;</text><text x="72" y="84" fill="#2C1B12">Swift Fox</text>
+    <circle cx="232" cy="46" r="14" fill="#FF6B6B" stroke="#2C1B12"/><text x="232" y="51" font-size="14">&#128060;</text><text x="232" y="78" fill="#2C1B12">Calm Panda</text>
+    <circle cx="214" cy="116" r="14" fill="#96CEB4" stroke="#2C1B12"/><text x="214" y="121" font-size="14">&#129412;</text><text x="214" y="146" fill="#2C1B12">Sunny Unicorn</text></g></svg>
+   </div>
+   <div class="glass pn" data-p="2"><h2>Select Prey (Files)</h2><div class="dz">&#128193; Drop files or click to select</div>
+    <div class="fr"><span>Roadmap.pdf</span><span>2.1 MB</span></div><div class="fr"><span>Team-offsite.zip</span><span>48.2 MB</span></div></div>
+   <div class="glass pn"><h2>Target Cub</h2>
+    <div class="pr"><span class="av" style="background:#4ECDC4">&#129418;</span>Swift Fox</div>
+    <div class="pr"><span class="av" style="background:#FF6B6B">&#128060;</span>Calm Panda</div>
+    <button class="btn sm" style="margin-top:10px;width:100%;justify-content:center" disabled>Pick files and a recipient to send</button></div>
+  </div>
+  <div class="glass pn"><h3 style="font-size:16px;margin-bottom:8px">Transfer History <span class="badge" style="margin-left:6px">Illustrative sample data</span></h3><div class="tw" id="tbl3"></div></div>
+ </div>
+</section>
+
+<!-- 4 RELIABILITY -->
+<section class="slide" data-id="reliability" aria-label="Reliable delivery">
+ <div class="body">
+  <h2 style="font-size:32px;margin-bottom:4px">Built for reliable delivery</h2>
+  <p class="note" style="font-size:16px;margin-bottom:12px">Large files are sent in small pieces, each checked on arrival. The sizes below are the project's documented settings, not measured results.</p>
+  <div class="two">
+   <div class="glass pn chart"><h2>Size of each piece, by device and file size</h2><div class="leg"><span><i style="background:#F6C148"></i>Phones &amp; tablets</span><span><i style="background:#A6521B"></i>Computers</span></div><div id="ch4"></div></div>
+   <div class="glass pn sl"><h2>Safeguards described in the project</h2>
+    <h3>&#9989; Integrity check</h3><p>Every piece and the finished file are verified with a SHA-256 fingerprint.</p>
+    <h3>&#128260; Automatic retry</h3><p>A piece that fails is retried up to 3 times.</p>
+    <h3>&#128269; Gap detection</h3><p>Missing pieces are noticed and re-requested.</p>
+    <h3>&#128241; Mobile care</h3><p>Large files on phones (over 50 MB) are held in on-device storage to avoid memory problems.</p>
+    <h3>&#128246; Family mode</h3><p>Warns when a device is on mobile data instead of the shared WiFi.</p></div>
+  </div>
+  <div class="glass pn" style="margin-top:14px"><p class="note"><b>Why this page is different:</b> the first showcase shows how a person uses the app. This one shows what happens behind the scenes to protect each delivery. Source: project README.</p></div>
+ </div>
+</section>
+
+<!-- 5 YOUR TURN -->
+<section class="slide" data-id="app" aria-label="Your turn">
+ <div class="body" style="padding:0">
+  <div id="app"></div>
+  <div id="toast"></div><div id="modal"><div class="box" id="mbox"></div></div>
+ </div>
+</section>
+
+<!-- 6 CLOSE -->
+<section class="slide" data-id="close" aria-label="Summary">
+ <div class="blob" style="top:-90px;left:-120px"></div>
+ <div class="center">
+  <div class="logo-ring" style="width:90px;height:90px"><svg width="66" height="66"><use href="#i-lion"/></svg></div>
+  <h1 style="font-size:44px">What c0py.me already offers</h1>
+  <div class="cl" style="text-align:left;max-width:1000px">
+   <div class="glass"><h3>Simple to use</h3>Pick a sharing world, choose files, choose a person. No account is needed; names are generated automatically.</div>
+   <div class="glass"><h3>In the recipient's control</h3>Recipients see the file details and approve before anything is received.</div>
+   <div class="glass"><h3>Designed for dependability</h3>Pieces are verified, retried when they fail, and sized for the device in use.</div>
+  </div>
+  <p class="note" style="max-width:860px;font-size:15px">This tour describes the product as built, based on its source code and documentation. No usage, adoption, savings or performance figures are included because none were available to verify.</p>
+  <div style="display:flex;gap:12px;margin-top:20px"><button class="btn ghost" data-go="5.0&v=share">Try it yourself</button><button class="btn" data-go="1.0">Back to start</button></div>
+ </div>
+</section>
+
+<div id="bar"><button class="btn ghost sm" id="back">&larr; Back</button><div class="dots" id="dots" role="tablist"></div><span class="pc" id="pc"></span><button class="btn ghost sm" id="fs" title="Full screen (F)">&#9974; Full screen</button><button class="btn sm" id="next">Next &rarr;</button></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)},$$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+var stage=$('#stage'),slides=$$('.slide'),N=slides.length,scale=1;
+var cur=0,step=0;
+var IC={shield:'i-shield',user:'i-user',zap:'i-zap',globe:'i-globe',key:'i-key',up:'i-up'};
+var FEATS=[
+['shield','Secure P2P Transfer','Files travel directly between devices using WebRTC. No servers store or access your data.','safeguards'],
+['user','Anonymous Sharing','Generate random usernames, no accounts required. Share files without revealing your identity.','share'],
+['zap','Lightning Fast','Direct device-to-device transfers eliminate server bottlenecks. Experience maximum transfer speeds.','safeguards'],
+['globe','Three Worlds','Jungle (global), Room (private codes), or Family (same WiFi). Choose your sharing environment.','share'],
+['key','Connection Authorization','Recipients see file details and approve transfers. No surprise file downloads.','share'],
+['up','Real-time Progress','Watch animated cubs track transfer progress with live speed and time estimates.','history']];
+var STEPS=[['Choose Your World','Join the global Jungle, create private Rooms with codes, or connect with Family on the same WiFi network.'],
+['Select & Send Request','Pick your files, choose a recipient, and send a connection request. They\'ll see your file details and can accept or decline.'],
+['Direct P2P Transfer','Once accepted, files transfer directly between devices via WebRTC. Watch the animated cub track progress in real-time.']];
+var TOUR=[null,
+['The front door','This is the c0py.me home page: the name, the promise (private, direct, instant) and a single clear starting point.'],
+['One click to begin','"Start Sharing" opens the app. There is no sign-up step first.'],
+['At a glance','Three worlds, six headline features and three steps. These are counts taken directly from the home page.'],
+['Six headline features','Each card is one reason to use it: direct transfer, no accounts, speed, three sharing worlds, recipient approval and live progress.'],
+['Three steps','Choose a world, pick files and a recipient, then the transfer runs directly between the two devices.']];
+var HIST=[
+{f:'Team-offsite.zip',p:'Swift Fox 🦊',d:'Sent',b:50528461,s:'Completed',t:'2025-01-14T09:42:00',u:'12 s'},
+{f:'Budget-draft.xlsx',p:'Calm Panda 🐼',d:'Received',b:1468006,s:'Completed',t:'2025-01-14T09:15:00',u:'1 s'},
+{f:'Product-demo.mp4',p:'Swift Fox 🦊',d:'Sent',b:327155712,s:'Cancelled',t:'2025-01-14T08:50:00',u:'—'},
+{f:'Logo-pack.png',p:'Sunny Unicorn 🦄',d:'Received',b:5872026,s:'Completed',t:'2025-01-13T16:30:00',u:'2 s'},
+{f:'Roadmap.pdf',p:'Calm Panda 🐼',d:'Sent',b:2202009,s:'Failed',t:'2025-01-13T11:05:00',u:'—'}];
+var CH=[['Phone, file under 50 MB',8,'m'],['Phone, file over 50 MB',16,'m'],['Computer, file under 100 MB',32,'d'],['Computer, 100–500 MB',64,'d'],['Computer, file over 500 MB',64,'d']];
+var WORLDS={jungle:['🌍','Jungle','Global: anyone using the Jungle can appear.',[['Swift Fox','🦊','#4ECDC4'],['Calm Panda','🐼','#FF6B6B'],['Sunny Unicorn','🦄','#96CEB4']]],
+room:['🔒','Room','Private: only people with the same room code.',[['Quiet Owl','🦉','#45B7D1'],['Bold Bear','🐻','#DDA0DD']]],
+family:['📶','Family','Nearby: people on the same WiFi network.',[['Cosy Cat','🐱','#F7DC6F'],['Happy Frog','🐸','#98D8C8']]]};
+var FILES=[['Roadmap.pdf',2202009],['Team-offsite.zip',50528461],['Logo-pack.png',5872026]];
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+function fmt(b){return b>=1048576?(b/1048576).toFixed(1)+' MB':b>=1024?(b/1024).toFixed(1)+' KB':b+' B'}
+function ft(t){var d=new Date(t);return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}
+function cls(s){return s==='Completed'?'s-ok':s==='Cancelled'?'s-warn':s==='Failed'?'s-bad':'s-warn'}
+function tableHTML(rows,sortable,sk,sd){
+ var cols=[['f','File Name'],['p','Sender/Receiver'],['d','Direction'],['b','File Size'],['s','Status'],['t','Time'],['u','Duration']];
+ var h='<table><thead><tr>'+cols.map(function(c){var a=sk===c[0]?(sd>0?' ▲':' ▼'):'';return '<th scope="col"'+(sk===c[0]?' aria-sort="'+(sd>0?'ascending':'descending')+'"':'')+'>'+(sortable?'<button data-sort="'+c[0]+'">'+c[1]+a+'</button>':c[1])+'</th>'}).join('')+'</tr></thead><tbody>';
+ if(!rows.length)h+='<tr><td colspan="7">No transfers match the filters.</td></tr>';
+ rows.forEach(function(r){h+='<tr><td>'+esc(r.f)+'</td><td>'+esc(r.p)+'</td><td>'+r.d+'</td><td>'+fmt(r.b)+'</td><td class="'+cls(r.s)+'">'+r.s+'</td><td>'+ft(r.t)+'</td><td>'+r.u+'</td></tr>'});
+ return h+'</tbody></table>'}
+function byTime(a,b){return Date.parse(b.t)-Date.parse(a.t)}
+/* chart */
+function chartHTML(filter){
+ var rows=CH.filter(function(r){return filter==='all'||r[2]===filter});
+ var W=640,lh=46,H=rows.length*lh+54,x0=200,mx=64,bw=W-x0-70;
+ var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Bar chart of piece size in kilobytes by situation">';
+ [0,16,32,48,64].forEach(function(v){var x=x0+v/mx*bw;s+='<line x1="'+x+'" x2="'+x+'" y1="4" y2="'+(H-30)+'" stroke="rgba(166,82,27,.2)"/><text x="'+x+'" y="'+(H-14)+'" font-size="12" text-anchor="middle">'+v+'</text>'});
+ s+='<text x="'+(x0+bw/2)+'" y="'+(H-1)+'" font-size="12" text-anchor="middle" style="fill:var(--muted)">Piece size (KB)</text>';
+ rows.forEach(function(r,i){var y=10+i*lh,w=r[1]/mx*bw;
+  s+='<text x="'+(x0-10)+'" y="'+(y+19)+'" font-size="13" text-anchor="end">'+r[0]+'</text><rect x="'+x0+'" y="'+y+'" width="'+w+'" height="28" rx="6" fill="'+(r[2]==='m'?'#F6C148':'#A6521B')+'"/><text x="'+(x0+w+8)+'" y="'+(y+19)+'" font-size="14" font-weight="700">'+r[1]+' KB</text>'});
+ return s+'</svg>'}
+/* count-up */
+function countUp(el){var t=+el.getAttribute('data-count');if(RM){el.textContent=t;return}
+ el.textContent='0';var st=Date.now(),done=false;function fin(){if(!done){done=true;el.textContent=t}}
+ (function f(){if(done)return;var p=Math.min(1,(Date.now()-st)/900);el.textContent=Math.round(t*p);if(p<1)requestAnimationFrame(f);else fin()})();
+ setTimeout(fin,1100)}
+/* build static parts */
+$('#feat2').innerHTML=FEATS.map(function(f){return '<div class="glass fc"><div class="ic"><svg width="26" height="26"><use href="#'+IC[f[0]]+'"/></svg></div><h3>'+f[1]+'</h3><p>'+f[2]+'</p></div>'}).join('');
+$('#steps2').innerHTML=STEPS.map(function(s,i){return '<div class="st"><div class="num">'+(i+1)+'</div><h3>'+s[0]+'</h3><p>'+s[1]+'</p></div>'}).join('');
+$('#tbl3').innerHTML=tableHTML(HIST.slice().sort(byTime).slice(0,4));
+$('#ch4').innerHTML=chartHTML('all');
+$('#dots').innerHTML=slides.map(function(s,i){return '<button class="dot" aria-label="Go to slide '+(i+1)+': '+s.getAttribute('aria-label')+'" data-go="'+(i+1)+'.0"></button>'}).join('');
+
+/* ---- interactive app (slide 5) ---- */
+var A={page:'share',world:'jungle',files:{},peer:null,dark:false,q:'',st:'all',sk:'t',sd:-1,cf:'all',hint:true,extra:[]};
+var PAGES=[['home','🏠','Home'],['share','📤','Share'],['history','📋','History'],['safeguards','🛡️','Safeguards']];
+function renderApp(){
+ var w=WORLDS[A.world],body='';
+ if(A.page==='home'){body='<h2 style="font-size:24px;margin-bottom:10px">Home: what c0py.me offers</h2><div class="feat" style="grid-template-columns:repeat(3,1fr)">'+FEATS.map(function(f){return '<button class="glass fc fcl" data-open="'+f[3]+'" style="padding:14px"><div class="ic" style="width:42px;height:42px"><svg width="22" height="22"><use href="#'+IC[f[0]]+'"/></svg></div><h3 style="font-size:16px">'+f[1]+'</h3><p style="font-size:13px">'+f[2]+'</p><span class="go">See it in the app &rarr;</span></button>'}).join('')+'</div>'}
+ else if(A.page==='share'){
+  var nf=Object.keys(A.files).length;
+  body='<div class="worlds" role="group" aria-label="Choose a world">'+Object.keys(WORLDS).map(function(k){return '<button class="wd'+(k===A.world?' on':'')+'" data-world="'+k+'" aria-pressed="'+(k===A.world)+'">'+WORLDS[k][0]+' '+WORLDS[k][1]+'</button>'}).join('')+'</div><p class="note" style="margin:-4px 0 10px">'+w[2]+' <span class="badge">Sample people</span></p>'+
+  '<div class="three" style="margin-bottom:0"><div class="glass pn"><h2>1. Who is nearby</h2>'+w[3].map(function(p,i){return '<button class="pr'+(A.peer===i?' sel':'')+'" data-peer="'+i+'" aria-pressed="'+(A.peer===i)+'"><span class="av" style="background:'+p[2]+'">'+p[1]+'</span>'+p[0]+'</button>'}).join('')+'</div>'+
+  '<div class="glass pn"><h2>2. Select files</h2>'+FILES.map(function(f,i){return '<label class="fr" style="cursor:pointer"><span><input type="checkbox" data-file="'+i+'"'+(A.files[i]?' checked':'')+'> '+f[0]+'</span><span>'+fmt(f[1])+'</span></label>'}).join('')+'<p class="note" style="margin-top:8px">Sample files; nothing is read from your device.</p></div>'+
+  '<div class="glass pn"><h2>3. Review</h2><p style="font-size:14.5px;line-height:1.5">'+(nf?nf+' file'+(nf>1?'s':''):'No files')+' &rarr; '+(A.peer!==null?w[3][A.peer][0]:'no recipient')+'</p><button class="btn sm" id="send" style="margin-top:12px;width:100%;justify-content:center"'+(nf&&A.peer!==null?'':' disabled')+'>Preview recipient approval</button><p class="note" style="margin-top:8px">'+(nf&&A.peer!==null?'This opens a preview only; no file is sent.':'Choose at least one file and one person.')+'</p></div></div>'}
+ else if(A.page==='history'){
+  var rows=HIST.concat(A.extra).filter(function(r){return (A.st==='all'||r.s===A.st)&&(!A.q||(r.f+' '+r.p).toLowerCase().indexOf(A.q.toLowerCase())>=0)});
+  rows.sort(function(a,b){var x=A.sk==='t'?Date.parse(a.t):a[A.sk],y=A.sk==='t'?Date.parse(b.t):b[A.sk];return (x>y?1:x<y?-1:0)*A.sd});
+  var cnt={Completed:0,Cancelled:0,Failed:0,'Sample only':0};HIST.concat(A.extra).forEach(function(r){cnt[r.s]++});
+  body='<h2 style="font-size:24px;margin-bottom:8px">Transfer History <span class="badge">Illustrative sample data</span></h2><div class="ctl"><input id="q" type="search" placeholder="Search file or person" aria-label="Search" value="'+esc(A.q)+'"><select id="stf" aria-label="Filter by status">'+['all','Completed','Cancelled','Failed','Sample only'].map(function(s){return '<option value="'+s+'"'+(A.st===s?' selected':'')+'>'+(s==='all'?'All statuses':s)+'</option>'}).join('')+'</select><span class="note">'+rows.length+' shown. Click a column heading to sort.</span></div><div class="tw">'+tableHTML(rows,true,A.sk,A.sd)+'</div>'}
+ else{body='<h2 style="font-size:24px;margin-bottom:8px">Safeguards: piece size by device</h2><div class="ctl"><div class="seg" role="group" aria-label="Device filter">'+[['all','All'],['m','Phones & tablets'],['d','Computers']].map(function(o){return '<button data-cf="'+o[0]+'" class="'+(A.cf===o[0]?'on':'')+'" aria-pressed="'+(A.cf===o[0])+'">'+o[1]+'</button>'}).join('')+'</div></div><div class="glass pn chart"><div class="leg"><span><i style="background:#F6C148"></i>Phones &amp; tablets</span><span><i style="background:#A6521B"></i>Computers</span></div>'+chartHTML(A.cf)+'</div><p class="note" style="margin-top:10px">Documented settings from the project README. Each piece is fingerprint-checked (SHA-256) and retried up to 3 times if it fails.</p>'}
+ $('#app').className=A.dark?'dark':'';
+ $('#app').innerHTML='<div style="padding:18px 40px 0;display:flex;flex-direction:column;height:100%"><div class="glass hdr" style="margin-bottom:10px"><svg width="34" height="34"><use href="#i-lion"/></svg><h1>c0py.me</h1><span class="pill">'+w[0]+' '+w[1]+'</span><span class="badge">Interactive demo</span><button class="btn ghost sm" id="theme" aria-pressed="'+A.dark+'" style="margin-left:auto">'+(A.dark?'☀️ Light mode':'🌙 Dark mode')+'</button></div>'+
+ (A.hint?'<div class="hint" role="note">👉 <span><b>Your turn:</b> pick a page on the left, choose a world, select files and a person, then try sorting the history or switching to dark mode. Dark mode is a viewing option added for this tour.</span><button id="hx" aria-label="Dismiss hint">✕</button></div>':'')+
+ '<div class="shell"><nav class="glass side" aria-label="Pages">'+PAGES.map(function(p){return '<button class="nv'+(p[0]===A.page?' on':'')+'" data-page="'+p[0]+'" aria-current="'+(p[0]===A.page?'page':'false')+'">'+p[1]+' '+p[2]+'</button>'}).join('')+'</nav><main class="main">'+body+'</main></div></div>';
+ var q=$('#q');if(q&&A._f){q.focus();q.setSelectionRange(q.value.length,q.value.length)}A._f=0}
+function toast(m){var t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display='none'},3200)}
+function closeModal(){$('#modal').classList.remove('open')}
+$('#app').addEventListener('click',function(e){
+ var t=e.target.closest('[data-page],[data-world],[data-peer],[data-sort],[data-cf],[data-open],#theme,#hx,#send');if(!t)return;
+ if(t.dataset.page){A.page=t.dataset.page}
+ else if(t.dataset.open){A.page=t.dataset.open}
+ else if(t.dataset.world){A.world=t.dataset.world;A.peer=null}
+ else if(t.dataset.peer){A.peer=+t.dataset.peer}
+ else if(t.dataset.sort){if(A.sk===t.dataset.sort)A.sd*=-1;else{A.sk=t.dataset.sort;A.sd=1}}
+ else if(t.dataset.cf){A.cf=t.dataset.cf}
+ else if(t.id==='theme'){A.dark=!A.dark}
+ else if(t.id==='hx'){A.hint=false}
+ else if(t.id==='send'){var p=WORLDS[A.world][3][A.peer],ks=Object.keys(A.files);
+  $('#mbox').innerHTML='<h2>Approval preview (recipient\'s view)</h2><p><b>'+esc(WORLDS[A.world][3][A.peer][0])+'</b> would be asked to accept '+ks.length+' file'+(ks.length>1?'s':'')+':</p>'+ks.map(function(k){return '<div class="fr" style="background:#fff7ed"><span>'+FILES[k][0]+'</span><span>'+fmt(FILES[k][1])+'</span></div>'}).join('')+'<p style="margin-top:12px">In the real app the recipient can accept or decline. Here, nothing is sent.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost sm" id="mno">Decline</button><button class="btn sm" id="myes">Accept (log as sample)</button></div>';
+  $('#modal').classList.add('open');$('#myes').focus();return}
+ renderApp();syncHash()});
+$('#app').addEventListener('change',function(e){var t=e.target;
+ if(t.dataset.file!==undefined){if(t.checked)A.files[t.dataset.file]=1;else delete A.files[t.dataset.file];renderApp()}
+ else if(t.id==='stf'){A.st=t.value;renderApp()}});
+$('#app').addEventListener('input',function(e){if(e.target.id==='q'){A.q=e.target.value;A._f=1;renderApp()}});
+$('#modal').addEventListener('click',function(e){var i=e.target.id;
+ if(i==='mno'||e.target.id==='modal'){closeModal();toast('Declined: nothing was sent.')}
+ if(i==='myes'){var ks=Object.keys(A.files),p=WORLDS[A.world][3][A.peer];
+  ks.forEach(function(k){A.extra.push({f:FILES[k][0],p:p[0]+' '+p[1],d:'Sent',b:FILES[k][1],s:'Sample only',t:new Date().toISOString().slice(0,19),u:'—'})});
+  closeModal();toast('Logged as "Sample only" in History. No file was transferred.');renderApp()}});
+
+/* ---- navigation ---- */
+function fit(){var narrow=window.matchMedia('(max-width:760px)').matches;
+ if(narrow){scale=1;stage.style.transform='none';stage.style.margin='0';return}
+ scale=Math.min(innerWidth/1280,innerHeight/720);stage.style.marginLeft=(-640*scale)+'px';stage.style.marginTop=(-360*scale)+'px';stage.style.transform='scale('+scale+')'}
+function slug(){var id=slides[cur].dataset.id;return cur===4?A.page:id}
+function syncHash(){var h='#'+(cur+1)+'.'+step+'&v='+slug()+(cur===4&&A.dark?'&theme=dark':'');if(location.hash!==h)history.replaceState(null,'',h)}
+function spot(){var sp=$('#spot'),cp=$('#cap');
+ if(cur!==1||step<1){sp.style.display='none';cp.style.display='none';return}
+ var pane=$('#pane2'),el=$('[data-tour="'+step+'"]',pane);
+ var pr=pane.getBoundingClientRect(),er=el.getBoundingClientRect();
+ pane.scrollTop+=(er.top-pr.top)/scale-90;
+ var sr=stage.getBoundingClientRect();er=el.getBoundingClientRect();
+ var x=(er.left-sr.left)/scale-10,y=(er.top-sr.top)/scale-8,w=er.width/scale+20,h=er.height/scale+16;
+ var narrow=scale===1&&window.matchMedia('(max-width:760px)').matches;
+ sp.style.cssText='display:block;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px';
+ cp.style.display='block';$('#cap-t').textContent='Step '+step+' of '+(TOUR.length-1)+': '+TOUR[step][0];$('#cap-p').textContent=TOUR[step][1];
+ $('#tb').disabled=false;$('#tn').textContent=step===TOUR.length-1?'Finish →':'Next →';
+ var low=(y+h/2)>(narrow?innerHeight/2:360);cp.style.top=low?'20px':'auto';cp.style.bottom=low?'auto':'74px'}
+function show(i,s,silent){cur=Math.max(0,Math.min(N-1,i));step=s||0;
+ slides.forEach(function(el,k){el.classList.toggle('active',k===cur)});
+ if(cur===4){renderApp()}
+ if(cur===1){$$('[data-count]').forEach(countUp)}
+ $$('.dot').forEach(function(d,k){d.className='dot'+(k===cur?' on':k<cur?' done':'')});
+ $('#pc').textContent='Slide '+(cur+1)+' of '+N;$('#back').disabled=cur===0;$('#next').disabled=cur===N-1;
+ spot();if(!silent)syncHash();else syncHash()}
+function go(spec){var m=String(spec).split('&');var p=m[0].split('.');
+ if(m[1]&&m[1].indexOf('v=')===0&&+p[0]===5){var v=m[1].slice(2);if(WORLD_OK(v))A.page=v}
+ show(+p[0]-1,+p[1]||0)}
+function WORLD_OK(v){return PAGES.some(function(p){return p[0]===v})}
+function parseHash(){var h=location.hash.replace(/^#/,'');if(!h){show(0,0);return}
+ var parts=h.split('&'),p=parts[0].split('.'),i=Math.max(1,Math.min(N,parseInt(p[0],10)||1)),s=parseInt(p[1],10)||0;
+ parts.slice(1).forEach(function(kv){var a=kv.split('=');if(a[0]==='v'&&i===5&&WORLD_OK(a[1]))A.page=a[1];if(a[0]==='theme')A.dark=a[1]==='dark'});
+ if(i!==2)s=0;else s=Math.min(s,TOUR.length-1);show(i-1,s)}
+function nextSlide(){if(cur<N-1)show(cur+1,0)}function prevSlide(){if(cur>0)show(cur-1,0)}
+function tourNext(){if(step<TOUR.length-1){step++;spot();syncHash()}else nextSlide()}
+function tourBack(){if(step>0){step--;spot();syncHash()}}
+document.addEventListener('click',function(e){var g=e.target.closest('[data-go]');if(g)go(g.getAttribute('data-go'))});
+$('#next').onclick=nextSlide;$('#back').onclick=prevSlide;$('#tn').onclick=tourNext;$('#tb').onclick=function(){step>0?tourBack():spotOff()};
+function spotOff(){step=0;spot();syncHash()}
+function fs(){var d=document;if(d.fullscreenElement){d.exitFullscreen()}else if(d.documentElement.requestFullscreen){d.documentElement.requestFullscreen().catch(function(){})}}
+$('#fs').onclick=fs;
+document.addEventListener('keydown',function(e){var t=e.target&&e.target.tagName;if(/INPUT|SELECT|TEXTAREA/.test(t)&&e.key!=='Escape')return;
+ if(e.key==='ArrowRight'){nextSlide();e.preventDefault()}else if(e.key==='ArrowLeft'){prevSlide();e.preventDefault()}
+ else if(e.key==='f'||e.key==='F'){fs()}else if(e.key==='Escape'){if($('#modal').classList.contains('open'))closeModal();else if(document.fullscreenElement)document.exitFullscreen()}});
+var tx=null,ty=null;
+document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+document.addEventListener('touchend',function(e){if(tx===null)return;var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;tx=null;
+ if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&!e.target.closest('.tw,#pane2')){dx<0?nextSlide():prevSlide()}},{passive:true});
+window.addEventListener('resize',function(){fit();spot()});
+window.addEventListener('hashchange',parseHash);
+fit();parseHash();
+})();
+</script>
+</body>
+</html>
