@@ -1,0 +1,24 @@
+# The app container needs the host Docker socket to start per-run runner containers.
+# Treat that socket as root-equivalent: keep this host dedicated, and consider a socket proxy that only permits run/kill/rm.
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - /var/lib/demo-studio:/var/lib/demo-studio
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.claude:/root/.claude:ro
+    expose: ["3000"]
+    restart: unless-stopped
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [app]
+    restart: unless-stopped
+volumes:
+  caddy_data:
