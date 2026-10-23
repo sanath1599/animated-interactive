@@ -42,5 +42,6 @@
     "nextjs",
     "agent-sdk",
     "presentation-generator"
-  ]
+  ],
+  "license": "CC-BY-NC-4.0"
 }

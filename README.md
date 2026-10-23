@@ -147,6 +147,21 @@ samples/             generated sample demos shown on /samples
 - In-agent verification depends on Chromium; the server only confirms files exist and scans for external references. Interaction checks that need a real window (fullscreen, touch) are reported as not run.
 - Fidelity is transcribed from source and screenshots; a pixel-diff against the live product is not performed.
 
+## License
+
+Copyright (c) 2026 Sanath Swaroop.
+
+Licensed under [**Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**](LICENSE).
+
+- **You may** use, copy, modify, and share this project and build on it.
+- **You must** give appropriate credit to the original source, link to the license, and indicate if you made changes. For example:
+  *"Based on Animated Technical Interactive by Sanath Swaroop, https://github.com/sanath1599/animated-interactive (CC BY-NC 4.0)."*
+- **You may not** use it for commercial purposes.
+
+This is a source-available license, not an OSI-approved open-source license, because it forbids commercial use. For commercial licensing, get in touch via [antm.ai](https://antm.ai).
+
+The sample demos under `samples/` were generated from the author's own repositories and carry the same license.
+
 ## Author
 
 Built by [Sanath Swaroop](https://github.com/sanath1599). I write about what's happening in tech at **[antm.ai](https://antm.ai)**, and the live app is at **[app.antm.ai](https://app.antm.ai)**.
