@@ -1,0 +1,57 @@
+.ap { min-height: 100vh; display: grid; grid-template-columns: 1fr; position: relative; }
+@media (min-width: 62rem) { .ap { grid-template-columns: 17.5rem 1fr; } }
+.ap-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(900px 500px at 20% -10%, hsl(var(--ember) / .10), transparent 60%), radial-gradient(700px 500px at 100% 0, hsl(var(--plum) / .07), transparent 60%); }
+
+/* sidebar */
+.ap-side { background: hsl(var(--card) / .7); backdrop-filter: blur(12px); border-bottom: 1px solid hsl(var(--border)); }
+@media (min-width: 62rem) { .ap-side { position: sticky; top: 0; height: 100vh; border-bottom: 0; border-right: 1px solid hsl(var(--border)); display: flex; flex-direction: column; } }
+.ap-side-top { display: flex; justify-content: space-between; align-items: center; padding: .9rem 1.1rem; }
+.ap-side-top .brand { font-size: 1.02rem; line-height: 1.1; align-items: center; }
+.ap-side-body { display: none; flex-direction: column; gap: 1.2rem; padding: 0 1.1rem 1.1rem; flex: 1; min-height: 0; }
+.ap-side.open .ap-side-body { display: flex; }
+@media (min-width: 62rem) { .ap-side-body { display: flex; padding-top: .6rem; } }
+.ap-burger { width: 2.25rem; height: 2.25rem; border: 1px solid hsl(var(--border)); border-radius: 50%; background: hsl(var(--card)); display: grid; place-content: center; gap: 4px; cursor: pointer; }
+.ap-burger span { display: block; width: 14px; height: 2px; background: hsl(var(--foreground)); border-radius: 2px; }
+.ap-new { width: 100%; }
+@media (min-width: 62rem) { .ap-burger { display: none; } }
+.ap-hist { display: grid; gap: .3rem; min-height: 0; overflow: auto; align-content: start; flex: 1; }
+.ap-hist .eyebrow { margin: .3rem 0 .2rem; }
+.ap-hist-item { text-align: left; font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: .8rem; padding: .6rem .7rem; cursor: pointer; display: grid; gap: .3rem; transition: background .15s, border-color .15s; }
+.ap-hist-item:hover { background: hsl(var(--secondary)); } .ap-hist-item.on { background: hsl(var(--card)); border-color: hsl(var(--ember) / .45); }
+.ap-hist-title { font-size: .9rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-hist-meta { font-size: .68rem; color: hsl(var(--muted-foreground)); display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.ap-hist-meta .chip { font-size: .62rem; padding: .05rem .4rem; }
+.ap-side-foot { display: grid; gap: .6rem; border-top: 1px solid hsl(var(--border)); padding-top: .9rem; }
+
+/* main */
+.ap-main { padding: 1.5rem 1.25rem 5rem; max-width: 62rem; width: 100%; margin: 0 auto; }
+@media (min-width: 62rem) { .ap-main { padding: 2.2rem 2.5rem 5rem; } }
+.ap-h { font-size: clamp(2rem, 4vw, 2.8rem); margin-bottom: .35rem; }
+.ap-view { animation: swap .4s cubic-bezier(.2, .7, .2, 1) both; } @keyframes swap { from { opacity: 0; transform: translateY(8px); } }
+.ap-view h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); }
+.ap-sticky { position: sticky; bottom: 1rem; display: flex; justify-content: flex-end; pointer-events: none; } .ap-sticky .btn { pointer-events: auto; box-shadow: 0 14px 34px -12px hsl(var(--shadow) / .55), 0 6px 22px -8px hsl(var(--ember) / .5); }
+.ap-sticky .btn:disabled { background: hsl(var(--card)); color: hsl(var(--muted-foreground)); box-shadow: 0 10px 28px -14px hsl(var(--shadow) / .4); border: 1px solid hsl(var(--border)); }
+
+/* stepper */
+.stepper { list-style: none; display: flex; gap: .4rem; padding: 0; margin: 0 0 1.8rem; flex-wrap: wrap; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+.stepper li { display: flex; align-items: center; gap: .5rem; padding: .3rem .8rem .3rem .3rem; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--card) / .7); transition: all .25s; }
+.stepper-n { width: 1.4rem; height: 1.4rem; border-radius: 50%; display: grid; place-items: center; font-size: .7rem; background: hsl(var(--secondary)); }
+.stepper li.on { color: hsl(var(--foreground)); border-color: hsl(var(--ember) / .5); box-shadow: 0 0 0 3px hsl(var(--ember) / .12); } .stepper li.on .stepper-n { background: hsl(var(--ember)); color: hsl(var(--primary-foreground)); }
+.stepper li.done { color: hsl(var(--foreground)); } .stepper li.done .stepper-n { background: hsl(var(--mint) / .18); color: hsl(var(--mint)); }
+
+/* repo picker */
+.grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.card.select { cursor: pointer; text-align: left; font: inherit; color: inherit; display: grid; gap: .2rem; align-content: start; transition: border-color .15s, transform .2s, box-shadow .2s; position: relative; overflow: hidden; }
+.card.select::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; background: radial-gradient(120% 90% at 0 0, hsl(var(--ember) / .12), transparent 60%); pointer-events: none; }
+.card.select:hover { border-color: hsl(var(--ember) / .5); transform: translateY(-2px); box-shadow: 0 18px 34px -22px hsl(var(--shadow) / .5); } .card.select:hover::before { opacity: 1; }
+.card.select[aria-pressed="true"] { border-color: hsl(var(--ember)); box-shadow: 0 0 0 3px hsl(var(--ember) / .18); } .card.select[aria-pressed="true"]::before { opacity: 1; }
+.card.select p { margin-top: .4rem; }
+.ap-skel { display: grid; gap: .9rem; } .ap-skel i { height: 5rem; border-radius: 1rem; background: linear-gradient(90deg, hsl(var(--secondary)) 30%, hsl(var(--card)) 50%, hsl(var(--secondary)) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+fieldset.card { margin: 0; min-width: 0; } fieldset legend { font-family: var(--mono); font-size: .75rem; color: hsl(var(--muted-foreground)); padding: 0 .4rem; }
+
+/* sign-in gate */
+.gate { min-height: 70vh; display: grid; place-items: center; }
+.gate-card { width: min(100%, 28rem); text-align: center; display: grid; gap: 1rem; justify-items: center; padding: 2.4rem 2rem; border: 1px solid hsl(var(--border)); border-radius: 1.6rem; background: radial-gradient(90% 70% at 50% 0, hsl(var(--ember) / .12), transparent 70%), hsl(var(--card)); box-shadow: 0 40px 80px -50px hsl(var(--shadow) / .6); }
+.gate-card h1 { font-size: 2.1rem; } .gate-mark { width: 3rem; height: 3rem; } .gate-btn { width: 100%; }
+.gate-card .notice { text-align: left; width: 100%; }
