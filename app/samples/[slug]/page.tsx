@@ -30,7 +30,7 @@ export default async function SamplePage({ params }: { params: Promise<{ slug: s
           </div>
           <div className="row">
             <a className="btn" href={`/samples/${s.slug}/demo?download=1`}>Download HTML</a>
-            <Link className="btn primary" href="/app">Make your own</Link>
+            <Link className="btn primary" href="/dashboard">Make your own</Link>
           </div>
         </div>
         <div className="win sv-win">

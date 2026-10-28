@@ -12,7 +12,7 @@ export function LandingNav() {
         </nav>
         <div className="row" style={{ gap: ".5rem" }}>
           <ThemeToggle />
-          <Link href="/app" className="btn primary sm">Open the app</Link>
+          <Link href="/dashboard" className="btn primary sm">Get started</Link>
         </div>
       </div>
     </header>

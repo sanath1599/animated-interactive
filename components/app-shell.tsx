@@ -72,6 +72,7 @@ export function AppShell() {
         </div>
         <div className="ap-side-body">
           {signedIn && <button className="btn primary ap-new" onClick={newDemo}>New demo</button>}
+          {signedIn && <Link className="btn ghost sm" href="/dashboard">Dashboard</Link>}
           {signedIn && (
             <nav aria-label="Your demos" className="ap-hist">
               <p className="eyebrow">Your demos</p>

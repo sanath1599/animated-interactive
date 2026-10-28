@@ -1,10 +1,12 @@
 const ITEMS = [
-  ["Does it change my repository?", "No. The GitHub App only has read access to Contents and Metadata. Nothing is committed, pushed, or opened on GitHub, and the working copy is deleted when the run ends."],
-  ["Can it see my private code and secrets?", "It reads the repositories you choose. Files that look like secrets (.env, keys, credentials) are removed from the copy before Claude sees it, and the run happens in a locked-down container with no GitHub credentials."],
-  ["Are the numbers in the demo real?", "Every figure must trace to your data or to the repository. Anything that can't be verified is left out or labelled illustrative. If you upload a table, its values are kept exactly as written."],
-  ["What does verification actually check?", "Claude renders the presentation in headless Chrome and records each check as passed, failed, or not run. The result page shows that honestly, and the server separately confirms the file exists and loads nothing from the internet."],
-  ["What can I upload as sample data?", "CSV, JSON, text, Markdown, Excel, and PNG, JPG, WebP or GIF screenshots, up to 10 MB each. Images are inspected visually, not just read as text."],
-  ["How long does a run take?", "Usually a few minutes to around twenty, depending on the size of the app. You can watch each stage live, leave the page, and come back; progress is saved."],
+  ["Whose Claude usage does a build use?", "Yours. The build runs in a chat in your own claude.ai account, on your plan. This site never calls Claude. Your dashboard shows an estimate of each build's usage; claude.ai shows the exact figures."],
+  ["Why does claude.ai ask before using the connector?", "claude.ai asks before each connector tool by default. Open the connector in claude.ai's connector settings and set its tools to Always allow, or choose Always allow the first time a build asks."],
+  ["Does it change my repository?", "No. The GitHub App only has read access to contents and metadata. Nothing is committed, pushed or opened on GitHub, and the copy fetched for a build is deleted after 14 days without use."],
+  ["Can Claude see my secrets?", "Files that look like secrets (.env, keys, credentials) are removed from the copy before Claude can read anything. Access tokens for Azure DevOps, GitLab and Bitbucket stay encrypted on this server and are never sent to Claude."],
+  ["Are the numbers in the demo real?", "Every figure must trace to the repository. Anything that can't be verified is left out or clearly labelled as sample data."],
+  ["What does verification check?", "Every slide and step is rendered in headless Chromium with the network switched off: script errors, clipped or overflowing text, network requests, dark mode and a phone-width view. Claude gets the screenshots to fix what differs from the code, and the results go into a verification report."],
+  ["Which Claude model should I use?", "Pick Opus or Sonnet in the chat before pressing send. Rebuilding real screens from code is demanding work, and the stronger models copy the interface far more faithfully."],
+  ["How long does a build take?", "It depends on the size of the app and the level of detail: a brief demo is quick, a detailed one takes longer. Your dashboard shows each stage while Claude works."],
 ];
 
 export function Faq() {
