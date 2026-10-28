@@ -126,3 +126,21 @@ main { max-width: 74rem; margin: 0 auto; padding: 0 1.25rem; }
 .lp-sample:hover { transform: translateY(-4px); border-color: hsl(var(--ember) / .5); }
 .lp-sample img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top; display: block; border-bottom: 1px solid hsl(var(--border)); }
 .lp-sample div { padding: 1rem 1.15rem 1.2rem; } .lp-sample h3 { font-size: 1.45rem; margin-bottom: .3rem; }
+/* product tour: the dashboard and claude.ai steps */
+.pp-q { font-weight: 500; }
+.pp-list { display: grid; gap: 2px; padding: .3rem; border: 1px solid hsl(var(--border)); border-radius: .9rem; }
+.pp-row { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .5rem .7rem; border-radius: .6rem; font-size: .9rem; }
+.pp-row.sel { background: hsl(var(--ember) / .1); box-shadow: inset 3px 0 0 hsl(var(--ember)); }
+.pp-split { grid-template-columns: 1fr; }
+@media (min-width: 46rem) { .pp-split { grid-template-columns: 1.2fr 1fr; align-items: center; } }
+.pp-input.serif { font-family: var(--serif); font-size: 1.2rem; }
+.pp-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.pp-choices > div { display: grid; gap: .1rem; padding: .6rem .7rem; border: 1px solid hsl(var(--border)); border-radius: .8rem; font-size: .9rem; }
+.pp-choices > div.sel { border-color: hsl(var(--ember)); background: hsl(var(--ember) / .06); box-shadow: 0 0 0 3px hsl(var(--ember) / .14); }
+.pp-cover { aspect-ratio: 16 / 9; display: grid; align-content: center; justify-items: start; gap: .5rem; padding: 0 8%; border-radius: .9rem; border: 1px solid hsl(var(--border));
+  background: radial-gradient(70% 90% at 92% 0, hsl(var(--ember) / .2), transparent 70%), hsl(var(--card-2)); }
+.pp-cover b { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; line-height: 1.05; }
+.pp-cover i { font-style: normal; font-size: .72rem; padding: .25rem .7rem; border-radius: 999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.pp-msg { justify-self: end; max-width: 34rem; padding: .8rem 1rem; border-radius: 1rem 1rem .3rem 1rem; background: hsl(var(--secondary)); font-size: .9rem; }
+.pp-tools { display: grid; gap: .45rem; }
+.pp-tool { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; }

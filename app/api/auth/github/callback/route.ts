@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getConfig } from "@/lib/config";
-import { STATE_COOKIE, safeEqual, setSession } from "@/lib/auth/session";
+import { NEXT_COOKIE, STATE_COOKIE, isSafeNext, safeEqual, setSession } from "@/lib/auth/session";
 import { fetchGithubUser } from "@/lib/github/client";
+import { saveGithubToken } from "@/lib/github/user-token";
 import { upsertUser } from "@/lib/runs/store";
 
 export const runtime = "nodejs";
@@ -29,10 +30,14 @@ export async function GET(req: Request) {
   if (!res.ok || !tok.access_token) return home("auth_error=exchange");
   const user = await fetchGithubUser(tok.access_token);
   upsertUser(user);
+  const expiresAt = tok.expires_in ? Date.now() + tok.expires_in * 1000 : null;
   await setSession({
     userId: user.id, login: user.login, name: user.name, avatarUrl: user.avatarUrl,
     accessToken: tok.access_token, refreshToken: tok.refresh_token ?? null,
-    expiresAt: tok.expires_in ? Date.now() + tok.expires_in * 1000 : null, issuedAt: Date.now(),
+    expiresAt, issuedAt: Date.now(),
   });
-  return NextResponse.redirect(`${cfg.appUrl}/app`);
+  saveGithubToken(user.id, { accessToken: tok.access_token, refreshToken: tok.refresh_token ?? null, expiresAt });
+  const next = jar.get(NEXT_COOKIE)?.value;
+  jar.delete(NEXT_COOKIE);
+  return NextResponse.redirect(`${cfg.appUrl}${next && isSafeNext(next) ? next : "/app"}`);
 }

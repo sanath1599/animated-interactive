@@ -15,6 +15,11 @@ export interface Session {
 
 export const SESSION_COOKIE = "ds_session";
 export const STATE_COOKIE = "ds_oauth_state";
+/** Where to return after GitHub sign-in (e.g. the connector consent page). */
+export const NEXT_COOKIE = "ds_next";
+
+/** Only same-site absolute paths are accepted as post-login destinations. */
+export const isSafeNext = (v: string) => /^\/(?![/\\])[^\s]*$/.test(v) && v.length <= 2048;
 const MAX_AGE_S = 60 * 60 * 24 * 7;
 
 function key(): Buffer {

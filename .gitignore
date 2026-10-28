@@ -46,3 +46,9 @@ next-env.d.ts
 .claude/
 samples/evidence/
 *.tsbuildinfo
+
+# built artifact page (node artifact/build.mjs)
+/artifact/dist/
+
+# private sample documents
+samples/*.pdf

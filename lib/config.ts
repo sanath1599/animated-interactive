@@ -34,7 +34,22 @@ export function getConfig() {
     maxUploadBytes: int("MAX_UPLOAD_MB", 10) * 1024 * 1024,
     maxUploadFiles: int("MAX_UPLOAD_FILES", 5),
     devAuthBypass: process.env.DEV_AUTH_BYPASS === "1" && process.env.NODE_ENV !== "production",
+    /** Published claude.ai artifact that drives the Studio connector (the dashboard links to it). */
+    artifactUrl: process.env.ARTIFACT_URL ?? "",
+    /** GitHub logins that see usage across all users on /dashboard (comma separated). */
+    adminLogins: (process.env.ADMIN_LOGINS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
   };
 }
 
 export type AppConfig = ReturnType<typeof getConfig>;
+
+/** Display name the artifact looks the connector up by. It must match exactly. */
+export const CONNECTOR_NAME = "Animated Technical Interactive";
+
+export const mcpUrl = () => `${getConfig().appUrl}/api/mcp`;
+
+/** claude.ai link that opens "Add custom connector" with the name and URL prefilled (the user still confirms). */
+export const claudeInstallUrl = () =>
+  `https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=${encodeURIComponent(CONNECTOR_NAME)}&connectorUrl=${encodeURIComponent(mcpUrl())}`;
+
+export const isAdmin = (login: string) => getConfig().adminLogins.includes(login.toLowerCase());

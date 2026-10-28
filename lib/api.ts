@@ -19,12 +19,16 @@ export async function requireUser(req: Request, opts: { mutating?: boolean } = {
     const origin = req.headers.get("origin") ?? "";
     if (!(dev && LOCAL_ORIGIN.test(origin))) return { response: apiError("Cross-origin request rejected", 403) };
   }
-  let session = await getSession();
-  if (!session && dev) {
-    const login = os.userInfo().username;
-    session = { userId: 1, login, name: login, avatarUrl: null, accessToken: "", refreshToken: null, expiresAt: null, issuedAt: Date.now() };
-    upsertUser({ id: 1, login, name: login, avatarUrl: null });
-  }
+  const session = await currentSession();
   if (!session) return { response: apiError("Not signed in", 401) };
   return { session };
+}
+
+/** The signed-in user from the session cookie, or the local developer in dev-bypass mode. */
+export async function currentSession(): Promise<Session | null> {
+  const session = await getSession();
+  if (session || !getConfig().devAuthBypass) return session;
+  const login = os.userInfo().username;
+  upsertUser({ id: 1, login, name: login, avatarUrl: null });
+  return { userId: 1, login, name: login, avatarUrl: null, accessToken: "", refreshToken: null, expiresAt: null, issuedAt: Date.now() };
 }
