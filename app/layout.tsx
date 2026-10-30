@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Geist, Instrument_Serif, JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Toaster } from "@/components/toaster";
 import "./globals.css";
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const display = Schibsted_Grotesk({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-display" });
 const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif-display" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-src" });
 
@@ -16,9 +18,9 @@ const THEME_SCRIPT = `try{var t=localStorage.getItem('ati-theme');if(!t)t=matchM
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable} ${display.variable}`} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
-      <body>{children}</body>
+      <body>{children}<Toaster /></body>
     </html>
   );
 }

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import "../landing.css";
-import "./samples.css";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { SAMPLES } from "@/lib/samples";
 
@@ -9,26 +8,27 @@ export const metadata = { title: "Samples · antm", description: "Real demos gen
 export default function SamplesPage() {
   return (
     <div className="lp">
-      <div className="lp-bg" aria-hidden />
       <LandingNav />
       <main>
         <section className="sec sm-head">
-          <h1 className="sm-h">Real demos, generated from <span className="accent">real repositories</span></h1>
-          <p className="muted lede">Each one below was produced by a single run: Claude read the code, built the presentation, and checked it in headless Chrome. Open one and click around.</p>
+          <h1 className="sm-h">Samples built from real repositories</h1>
+          <p className="lede">Each one came out of a single build: the assistant read the code, rebuilt the screens, and antm checked every slide in Chrome. Open one and click around.</p>
         </section>
-        <div className="sm-grid">
+        <ul className="sample-rows">
           {SAMPLES.map((s) => (
-            <Link key={s.slug} href={`/samples/${s.slug}`} className="sm-card">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/samples/${s.slug}.png`} alt={`Preview of the ${s.title} demo`} loading="lazy" />
-              <div className="sm-card-body">
-                <h3>{s.title}</h3>
-                <p className="muted small">{s.tagline}</p>
-                <span className="chip">{s.repo}</span>
-              </div>
-            </Link>
+            <li key={s.slug}>
+              <Link href={`/samples/${s.slug}`} className="sample-row">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/samples/${s.slug}.png`} alt="" loading="lazy" />
+                <div>
+                  <h3>{s.title}</h3>
+                  <p>{s.tagline}</p>
+                  <p className="small sample-meta"><span className="mono">{s.repo}</span> <span>{Math.round(s.bytes / 1024)} KB</span> <span>{s.screenshots} views checked</span></p>
+                </div>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
         {SAMPLES.length === 0 && <p className="muted">Samples are on their way.</p>}
       </main>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { sileo } from "sileo";
 import { api } from "@/lib/client";
 
 export interface Credential { id: string; provider: "azure" | "gitlab" | "bitbucket"; host: string; label: string; username: string; createdAt: number }
@@ -23,6 +24,7 @@ export function AccessTokens({ credentials, onChange, embedded = false }: { cred
     try {
       await api("/api/connector/credentials", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       setForm({ ...form, label: "", username: "", token: "" });
+      sileo.success({ title: "Token saved", description: `Repositories on ${form.host} can now be fetched with it.` });
       await onChange();
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
@@ -30,7 +32,11 @@ export function AccessTokens({ credentials, onChange, embedded = false }: { cred
 
   async function remove(id: string) {
     setError(null);
-    try { await api(`/api/connector/credentials/${id}`, { method: "DELETE" }); await onChange(); } catch (err) { setError((err as Error).message); }
+    try {
+      await api(`/api/connector/credentials/${id}`, { method: "DELETE" });
+      sileo.success({ title: "Token removed" });
+      await onChange();
+    } catch (err) { sileo.error({ title: "Couldn't remove the token", description: (err as Error).message, duration: 10_000 }); }
   }
 
   return (

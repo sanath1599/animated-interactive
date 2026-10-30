@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { sileo } from "sileo";
 import { api } from "@/lib/client";
 import { Frame, Loading, SignedOutGate } from "./frame";
 import { Markdown } from "./markdown";
@@ -29,11 +30,33 @@ export function Demos({ focusDeck }: { focusDeck?: string }) {
   const [preview, setPreview] = useState<string | null>(focusDeck ?? null);
   const router = useRouter();
   useEffect(() => { if (data && !connected) router.replace("/dashboard/setup"); }, [data, connected, router]);
+  // A build that finishes while this page is open gets a toast; the list itself updates on the next poll.
+  const seen = useRef<Map<string, Status> | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const prev = seen.current;
+    seen.current = new Map(data.generations.map((x) => [x.id, x.status]));
+    if (!prev) return;
+    for (const x of data.generations) {
+      if (prev.get(x.id) !== "running") continue;
+      if (x.status === "completed" && x.deckId && x.deckAvailable) {
+        const deckId = x.deckId;
+        sileo.action({ title: "Demo ready", description: x.title, duration: 15_000, button: { title: "Preview", onClick: () => setPreview(deckId) } });
+      } else if (x.status === "failed") {
+        sileo.error({ title: "Build failed", description: x.error ? `${x.title}: ${x.error}` : x.title, duration: 10_000 });
+      }
+    }
+  }, [data]);
   if (signedOut) return <SignedOutGate />;
 
   async function deleteDeck(id: string) {
     setError(null);
-    try { await api(`/api/connector/decks/${id}`, { method: "DELETE" }); await load(); } catch (err) { setError((err as Error).message); }
+    const title = data?.generations.find((x) => x.deckId === id)?.title;
+    try {
+      await api(`/api/connector/decks/${id}`, { method: "DELETE" });
+      sileo.success({ title: "Demo deleted", description: title });
+      await load();
+    } catch (err) { sileo.error({ title: "Couldn't delete the demo", description: (err as Error).message, duration: 10_000 }); }
   }
   // A deck can have several generations (build, resume, revisions); its actions go on the newest one.
   const deckOwner = new Map<string, string>();
