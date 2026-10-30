@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/client";
 import { BrandMark, BRAND_NAME } from "./brand";
+import { SocialLinks } from "./social";
 import { ThemeToggle } from "./theme-toggle";
 import { GithubConnection } from "./github-connection";
 import { RepositoryPicker } from "./repository-picker";
@@ -87,6 +88,7 @@ export function AppShell() {
           )}
           <div className="ap-side-foot">
             <div className="row spread">
+              <SocialLinks />
               <ThemeToggle />
               {me?.user && (
                 <div className="row" style={{ gap: ".5rem" }}>

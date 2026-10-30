@@ -10,7 +10,7 @@ const PROVIDERS: { host: string; name: string; help: string; username: string }[
   { host: "bitbucket.org", name: "Bitbucket", username: "x-token-auth", help: "Repository or workspace access token with Repositories: Read. To use an app password instead, set the username to your Bitbucket username." },
 ];
 
-/** Read-only tokens for Azure DevOps, GitLab and Bitbucket. Sealed on the server; never sent to the artifact or Claude. */
+/** Read-only tokens for Azure DevOps, GitLab and Bitbucket. Sealed on the server; never sent to Claude or ChatGPT. */
 export function AccessTokens({ credentials, onChange, embedded = false }: { credentials: Credential[]; onChange: () => Promise<void>; embedded?: boolean }) {
   const [form, setForm] = useState({ host: PROVIDERS[0].host, label: "", username: "", token: "" });
   const [busy, setBusy] = useState(false);
@@ -37,7 +37,7 @@ export function AccessTokens({ credentials, onChange, embedded = false }: { cred
     <section id={embedded ? undefined : "access"} className={embedded ? "stack dx-panel-body" : "card stack"} aria-labelledby={embedded ? undefined : "tok-h"}>
       <div>
         {!embedded && <h2 id="tok-h" className="db-h2">Azure DevOps, GitLab and Bitbucket</h2>}
-        <p className="small muted">GitHub works through the GitHub App. For other hosts, save a read-only access token. Tokens are encrypted on this server and are never sent to the artifact or to Claude.</p>
+        <p className="small muted">GitHub works through the GitHub App. For other hosts, save a read-only access token. Tokens are encrypted on this server and are never sent to Claude or ChatGPT.</p>
       </div>
       {error && <div className="notice bad" role="alert">{error}</div>}
       {credentials.length > 0 && (
@@ -59,7 +59,7 @@ export function AccessTokens({ credentials, onChange, embedded = false }: { cred
           </div>
           <div style={{ flex: "1 1 12rem" }}>
             <label htmlFor="label">Label <span className="muted">(optional)</span></label>
-            <input id="label" type="text" value={form.label} maxLength={80} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="e.g. TCH Azure DevOps" />
+            <input id="label" type="text" value={form.label} maxLength={80} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="e.g. Contoso Azure DevOps" />
           </div>
         </div>
         <div className="row" style={{ alignItems: "end" }}>

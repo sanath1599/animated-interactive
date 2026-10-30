@@ -20,4 +20,4 @@ export function BrandMark({ className = "brand-mark" }: { className?: string }) 
     </svg>
   );
 }
-export const BRAND_NAME = "Animated Technical Interactive";
+export const BRAND_NAME = "antm";

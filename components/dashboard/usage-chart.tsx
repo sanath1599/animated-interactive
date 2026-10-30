@@ -6,7 +6,7 @@ export interface DailyUsage { day: string; calls: number; estTokens: number; bui
 export const fmtTokens = (n: number) => (n < 1000 ? String(n) : n < 1_000_000 ? `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k` : `${(n / 1_000_000).toFixed(1)}M`);
 const fmtDay = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 
-/** Estimated Claude tokens per day: a single-series bar chart with a hover tooltip and a screen-reader table. */
+/** Estimated assistant tokens per day: a single-series bar chart with a hover tooltip and a screen-reader table. */
 export function UsageChart({ daily }: { daily: DailyUsage[] }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 720, H = 180, PAD_L = 44, PAD_B = 22, PAD_T = 8;
@@ -22,9 +22,9 @@ export function UsageChart({ daily }: { daily: DailyUsage[] }) {
 
   return (
     <figure className="db-chart">
-      <figcaption className="small muted">Estimated Claude tokens per day (input + output)</figcaption>
+      <figcaption className="small muted">Estimated assistant tokens per day (input + output)</figcaption>
       <div className="db-chart-scroll"><div className="db-chart-wrap" onMouseLeave={() => setHover(null)}>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Estimated Claude tokens per day">
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Estimated assistant tokens per day">
           {ticks.map((t) => (
             <g key={t}>
               <line x1={PAD_L} x2={W} y1={y(t)} y2={y(t)} className="db-grid" />
@@ -49,13 +49,13 @@ export function UsageChart({ daily }: { daily: DailyUsage[] }) {
           <div className="db-tip" style={tipStyle(((PAD_L + hover * slot + slot / 2) / W) * 100)} role="status">
             <strong>{fmtDay(h.day)}</strong>
             <span>≈ {fmtTokens(h.estTokens)} tokens</span>
-            <span>{h.calls} Claude call{h.calls === 1 ? "" : "s"} · {h.builds} build{h.builds === 1 ? "" : "s"}</span>
+            <span>{h.calls} assistant step{h.calls === 1 ? "" : "s"} · {h.builds} build{h.builds === 1 ? "" : "s"}</span>
           </div>
         )}
       </div></div>
       <div className="sr-only"><table>
-        <caption>Estimated Claude tokens per day</caption>
-        <thead><tr><th>Day</th><th>Estimated tokens</th><th>Claude calls</th><th>Builds</th></tr></thead>
+        <caption>Estimated assistant tokens per day</caption>
+        <thead><tr><th>Day</th><th>Estimated tokens</th><th>Assistant steps</th><th>Builds</th></tr></thead>
         <tbody>{daily.map((d) => <tr key={d.day}><td>{d.day}</td><td>{d.estTokens}</td><td>{d.calls}</td><td>{d.builds}</td></tr>)}</tbody>
       </table></div>
     </figure>

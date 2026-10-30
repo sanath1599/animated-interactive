@@ -47,8 +47,6 @@ next-env.d.ts
 samples/evidence/
 *.tsbuildinfo
 
-# built artifact page (node artifact/build.mjs)
-/artifact/dist/
 
 # private sample documents
 samples/*.pdf

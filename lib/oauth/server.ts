@@ -38,6 +38,8 @@ export function authorizationServerMetadata() {
     grant_types_supported: ["authorization_code", "refresh_token"],
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
+    // Every redirect back to the client (codes and errors) carries iss, so clients such as ChatGPT can check it.
+    authorization_response_iss_parameter_supported: true,
     scopes_supported: [SCOPE],
   };
 }
@@ -48,7 +50,7 @@ export function protectedResourceMetadata() {
     authorization_servers: [issuer()],
     scopes_supported: [SCOPE],
     bearer_methods_supported: ["header"],
-    resource_name: "Animated Technical Interactive",
+    resource_name: "antm",
   };
 }
 
@@ -69,9 +71,9 @@ export function registerClient(body: unknown): Client {
   if (!uris.length || uris.length > MAX_REDIRECTS || !uris.every(isAllowedRedirect)) {
     throw new OAuthError("invalid_redirect_uri", "redirect_uris must be 1-5 https (or loopback http) URLs");
   }
-  if (b.token_endpoint_auth_method !== undefined && b.token_endpoint_auth_method !== "none") {
-    throw new OAuthError("invalid_client_metadata", "Only public clients (token_endpoint_auth_method=none) are supported");
-  }
+  // Every client is registered as a public client secured by PKCE. A client asking for a secret-based method
+  // (some send client_secret_basic by default) is told so in the response (token_endpoint_auth_method "none"),
+  // as RFC 7591 allows, instead of being refused.
   const name = typeof b.client_name === "string" && b.client_name.trim() ? b.client_name.trim().slice(0, 100) : "MCP client";
   const id = `cl_${randomBytes(16).toString("hex")}`;
   getDb().prepare("INSERT INTO oauth_clients(id,name,redirect_uris,created_at) VALUES(?,?,?,?)").run(id, name, JSON.stringify(uris), Date.now());
@@ -94,7 +96,7 @@ export interface AuthorizeRequest {
  */
 export function validateAuthorizeRequest(p: URLSearchParams): AuthorizeRequest | { redirectError: string; redirectUri: string; state: string | null } {
   const client = getClient(p.get("client_id") ?? "");
-  if (!client) throw new OAuthError("invalid_client", "Unknown client. Remove the connector in claude.ai and add it again.");
+  if (!client) throw new OAuthError("invalid_client", "Unknown client. Remove the connector in Claude or ChatGPT and add it again.");
   const redirectUri = p.get("redirect_uri") ?? (client.redirectUris.length === 1 ? client.redirectUris[0] : "");
   if (!client.redirectUris.includes(redirectUri)) throw new OAuthError("invalid_request", "The redirect URI does not match the registered client.");
   const state = p.get("state");

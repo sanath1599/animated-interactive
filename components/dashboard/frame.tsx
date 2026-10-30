@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import { BrandMark, BRAND_NAME } from "../brand";
+import { SocialLinks } from "../social";
 import { ThemeToggle } from "../theme-toggle";
 import type { DashboardData } from "./use-dashboard";
 
@@ -41,6 +42,7 @@ export function Frame({ page, data, children }: { page: Page; data: DashboardDat
             </>
           )}
           <span className="small mono dx-login">{data?.user.login}</span>
+          <SocialLinks />
           <ThemeToggle />
           <button className="btn ghost sm" type="button" onClick={signOut}>Sign out</button>
         </div>
@@ -56,7 +58,7 @@ export function SignedOutGate() {
       <section className="gate" aria-labelledby="gate-h"><div className="gate-card">
         <BrandMark className="gate-mark" />
         <h1 id="gate-h">Turn repositories into interactive demos</h1>
-        <p className="muted">Sign in with GitHub to continue. Claude runs on your own Claude plan; this site fetches the code and checks the result.</p>
+        <p className="muted">Sign in with GitHub to continue. Claude or ChatGPT does the writing on your own plan; this site fetches the code and checks the result.</p>
         <a className="btn primary lg gate-btn" href="/api/auth/github/login?next=/dashboard">Continue with GitHub</a>
         <p className="hint">Read-only access. Nothing is ever pushed to your repositories.</p>
       </div></section>

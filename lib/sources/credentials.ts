@@ -5,7 +5,7 @@ import { DEFAULT_USERNAME, providerForHost, type GitAuth, type GitProvider } fro
 
 /**
  * Read-only access tokens for Azure DevOps, GitLab and Bitbucket. Entered in the web app only,
- * stored sealed, and never returned to the browser, the artifact or Claude.
+ * stored sealed, and never returned to the browser, Claude or ChatGPT.
  */
 export interface GitCredential { id: string; provider: GitProvider; host: string; label: string; username: string; createdAt: number }
 

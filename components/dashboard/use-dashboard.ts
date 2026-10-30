@@ -4,12 +4,13 @@ import { api } from "@/lib/client";
 import type { Credential } from "./access-tokens";
 import type { DailyUsage } from "./usage-chart";
 
-export interface Connector { connected: boolean; connectedAt: number | null; lastUsedAt: number | null; name: string; mcpUrl: string; installUrl: string }
+export type Assistant = "claude" | "chatgpt";
+export interface Connector { connected: boolean; connectedAt: number | null; lastUsedAt: number | null; assistants: (Assistant | "other")[]; name: string; mcpUrl: string; installUrl: string; chatgptPluginsUrl: string }
 export type Status = "running" | "completed" | "failed" | "stopped" | "interrupted";
 export interface Generation {
   id: string; kind: "build" | "resume" | "revise"; status: Status; phase: string | null; title: string; label: string; branch: string | null;
   deckId: string | null; deckAvailable: boolean; viewsChecked: number | null; viewsWithProblems: number | null; error: string | null;
-  startedAt: number; updatedAt: number; finishedAt: number | null; chat: boolean; claudeUrl: string | null;
+  startedAt: number; updatedAt: number; finishedAt: number | null; chat: boolean; assistant: Assistant | null; chatUrl: string | null;
   claudeCalls: number; failedCalls: number; claudeMs: number; images: number; estInputTokens: number; estOutputTokens: number;
 }
 export interface Usage {
@@ -25,7 +26,7 @@ export interface Usage {
 export interface DashboardData {
   user: { login: string; name: string | null; avatarUrl: string | null; admin: boolean };
   github: { installations: number | null; installUrl: string | null };
-  connector: Connector; artifactUrl: string | null; credentials: Credential[]; generations: Generation[]; usage: Usage; scope: "me" | "all";
+  connector: Connector; credentials: Credential[]; generations: Generation[]; usage: Usage; scope: "me" | "all";
 }
 
 export const ago = (t: number) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`; };

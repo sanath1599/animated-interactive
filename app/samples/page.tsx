@@ -4,7 +4,7 @@ import "./samples.css";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { SAMPLES } from "@/lib/samples";
 
-export const metadata = { title: "Samples · Animated Technical Interactive", description: "Real demos generated from real repositories." };
+export const metadata = { title: "Samples · antm", description: "Real demos generated from real repositories." };
 
 export default function SamplesPage() {
   return (

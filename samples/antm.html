@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How antm works</title>
+<style>
+/* Presentation chrome for generated decks. The product's own screens live inside
+   .pf (product frame) and carry their own transcribed styles; nothing here styles them. */
+:root{--dk-bg:#eef0f3;--dk-panel:#fff;--dk-ink:#14161a;--dk-muted:#5b616b;--dk-line:#d9dde3;--dk-accent:#2f62d8;--dk-accent-ink:#fff;--dk-shade:rgba(10,14,22,.55);color-scheme:light}
+:root[data-theme="dark"]{--dk-bg:#0f1115;--dk-panel:#181b21;--dk-ink:#eceef2;--dk-muted:#9aa1ad;--dk-line:#2a2f38;--dk-shade:rgba(0,0,0,.62);color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--dk-bg);color:var(--dk-ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+#dk-viewport{position:fixed;inset:0;overflow:hidden}
+#dk-stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform:translate(-50%,-50%);transform-origin:center center;background:var(--dk-bg);overflow:hidden}
+.dk-head{position:absolute;left:28px;right:28px;top:18px;height:96px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.dk-eyebrow{font:600 12px/1.2 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--dk-accent);margin:0 0 6px}
+.dk-title{font-size:28px;line-height:1.15;font-weight:700;margin:0;text-wrap:balance;max-width:900px}
+.dk-caption{margin:6px 0 0;color:var(--dk-muted);font-size:14.5px;max-width:900px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dk-note{font-size:11.5px;color:var(--dk-muted);border:1px solid var(--dk-line);background:var(--dk-panel);border-radius:8px;padding:6px 10px;max-width:250px;line-height:1.35}
+.dk-body{position:absolute;left:24px;right:24px;top:124px;bottom:70px}
+.dk-frame{position:absolute;top:0;bottom:0;left:0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06),0 18px 40px -18px rgba(10,14,22,.35);border:1px solid var(--dk-line)}
+.dk-frame.with-steps{right:300px}.dk-frame.full{right:0}
+.pf-canvas{position:absolute;left:0;top:0;width:1280px;transform-origin:0 0;overflow:hidden}
+.pf{position:relative;width:100%;height:100%;overflow:hidden;color:#14161a;color-scheme:light}
+.dk-steps{position:absolute;top:0;right:0;width:284px;display:grid;gap:8px;align-content:start;max-height:100%;overflow:auto}
+.dk-steps h3{margin:0 0 2px;font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--dk-muted)}
+.dk-step{display:grid;grid-template-columns:24px 1fr;gap:10px;text-align:left;border:1px solid var(--dk-line);background:var(--dk-panel);color:inherit;border-radius:10px;padding:10px 12px;font:inherit;font-size:13.5px;cursor:pointer;line-height:1.35}
+.dk-step b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--dk-bg);font-size:12px}
+.dk-step.on{border-color:var(--dk-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--dk-accent) 18%,transparent)}
+.dk-step.on b{background:var(--dk-accent);color:var(--dk-accent-ink)}
+.dk-step-cap{grid-column:2;color:var(--dk-muted);font-size:12.5px;margin-top:2px}
+.dk-bar{position:absolute;left:24px;right:24px;bottom:16px;height:40px;display:flex;align-items:center;gap:10px}
+.dk-btn{height:38px;border-radius:9px;border:1px solid var(--dk-line);background:var(--dk-panel);color:var(--dk-ink);font:600 14px/1 inherit;padding:0 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.dk-btn:hover{border-color:var(--dk-accent)}.dk-btn:focus-visible,.dk-step:focus-visible{outline:2px solid var(--dk-accent);outline-offset:2px}
+.dk-btn.primary{background:var(--dk-accent);color:var(--dk-accent-ink);border-color:transparent}
+.dk-btn:disabled{opacity:.45;cursor:default}
+.dk-progress{flex:1;height:5px;border-radius:5px;background:var(--dk-line);overflow:hidden}.dk-progress i{display:block;height:100%;background:var(--dk-accent);transition:width .3s}
+.dk-count{font:600 13px ui-monospace,Menlo,monospace;color:var(--dk-muted);min-width:96px;text-align:center}
+.dk-spot{position:absolute;z-index:50;border-radius:10px;box-shadow:0 0 0 9999px var(--dk-shade),0 0 0 3px var(--dk-accent);pointer-events:none;transition:all .35s cubic-bezier(.2,.7,.2,1)}
+.dk-bubble{position:absolute;z-index:51;width:330px;background:var(--dk-panel);color:var(--dk-ink);border-radius:12px;padding:14px 16px;box-shadow:0 20px 40px -12px rgba(0,0,0,.45);font-size:15px;line-height:1.45}
+.dk-bubble h4{margin:0 0 4px;font-size:16px}.dk-bubble p{margin:0;color:var(--dk-muted)}
+.dk-bubble .dk-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.dk-cover{position:absolute;inset:0;display:grid;align-content:center;justify-items:start;padding:0 110px;gap:18px;background:radial-gradient(900px 500px at 85% 10%,color-mix(in srgb,var(--dk-accent) 16%,transparent),transparent 70%)}
+.dk-cover .dk-logo{width:64px;height:64px;display:grid;place-items:center}.dk-cover .dk-logo svg,.dk-cover .dk-logo img{max-width:64px;max-height:64px}
+.dk-cover h1{font-size:54px;line-height:1.05;margin:0;max-width:980px;text-wrap:balance;letter-spacing:-.01em}
+.dk-cover p{font-size:20px;color:var(--dk-muted);margin:0;max-width:820px}
+.dk-cover .dk-byline{font-size:15px;letter-spacing:.02em;margin-top:-6px}
+.dk-cover .dk-btn{height:48px;font-size:16px;padding:0 22px}
+.dk-points{display:grid;gap:10px;margin:0;padding:0;list-style:none;max-width:1000px}
+.dk-points li{background:var(--dk-panel);border:1px solid var(--dk-line);border-radius:10px;padding:10px 14px;font-size:16px}
+.dk-points small{display:block;color:var(--dk-muted);font:12px ui-monospace,Menlo,monospace;margin-top:2px}
+.dk-figs{display:flex;gap:12px;flex-wrap:wrap}
+.dk-fig{background:var(--dk-panel);border:1px solid var(--dk-line);border-radius:12px;padding:12px 16px;min-width:150px}
+.dk-fig b{display:block;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}.dk-fig span{font-size:13px;color:var(--dk-muted)}
+.dk-fig small{display:block;font:11px ui-monospace,Menlo,monospace;color:var(--dk-muted);margin-top:4px}
+.dk-play-bar{position:absolute;left:0;right:0;top:0;height:40px;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow:auto}
+.dk-chip{border:1px solid var(--dk-line);background:var(--dk-panel);color:inherit;border-radius:999px;padding:6px 12px;font:600 13px/1 inherit;cursor:pointer;white-space:nowrap}
+.dk-chip.on{background:var(--dk-accent);color:var(--dk-accent-ink);border-color:transparent}
+.dk-chip{flex:none}
+.dk-hint{margin-left:auto;font-size:12.5px;color:var(--dk-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:120px;flex:1 1 0;text-align:right}
+.dk-frame.play{top:48px}
+.dk-toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);background:var(--dk-ink);color:var(--dk-bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+.dk-toast.on{opacity:1}
+.dk-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .35s}
+.dk-slide.on{opacity:1;visibility:visible}
+.dk-rotate{display:none}
+@media (max-width:560px) and (orientation:portrait){.dk-rotate{display:block;position:fixed;left:12px;right:12px;bottom:12px;background:var(--dk-panel);border:1px solid var(--dk-line);border-radius:10px;padding:8px 12px;font-size:13px;text-align:center;color:var(--dk-muted)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+.pf{
+  --background: 36 24% 97%; --foreground: 24 22% 12%; --card: 36 30% 99%; --card-2: 34 26% 95%;
+  --primary: 22 88% 50%; --primary-foreground: 36 30% 99%;
+  --secondary: 30 18% 92%; --muted: 30 14% 93%; --muted-foreground: 25 10% 40%;
+  --destructive: 0 72% 45%; --border: 30 16% 86%; --ring: 22 88% 50%;
+  --ember: 22 92% 52%; --ember-soft: 32 96% 60%; --plum: 268 42% 58%; --mint: 168 64% 34%;
+  --shadow: 24 30% 20%;
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Iowan Old Style", "Apple Garamond", Georgia, serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --radius: 12px;
+}
+.pf *{ box-sizing: border-box; }
+.pf{ margin: 0; height: 100%; background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: var(--sans); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+.pf a{ color: inherit; cursor: pointer; }
+.pf h1, .pf h2, .pf h3, .pf h4{ font-family: var(--serif); font-weight: 400; letter-spacing: -.02em; line-height: 1.08; margin: 0; }
+.pf p{ margin: 0; }
+.pf .accent{ color: hsl(var(--ember)); font-style: italic; }
+.pf .mono{ font-family: var(--mono); }
+.pf .muted{ color: hsl(var(--muted-foreground)); }
+.pf .small{ font-size: 14px; }
+.pf .btn{ display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: inherit; font: 500 14.72px var(--sans); padding: 9.92px 18.4px; cursor: pointer; text-decoration: none; transition: transform .15s, border-color .15s, background .15s, box-shadow .15s; }
+.pf .btn:hover{ border-color: hsl(var(--ember) / .55); }
+.pf .btn.primary{ background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; box-shadow: 0 6px 22px -8px hsl(var(--ember) / .7), inset 0 1px 0 hsl(0 0% 100% / .25); }
+.pf .btn.lg{ padding: 13.6px 24px; font-size: 16px; }
+.pf .btn.ghost{ background: transparent; }
+.pf .btn.sm{ padding: 6.4px 13.6px; font-size: 13.12px; }
+.pf .btn:disabled{ opacity: .5; cursor: not-allowed; }
+.pf .chip{ display: inline-flex; align-items: center; gap: 5.6px; font-family: var(--mono); font-size: 11.2px; padding: 2.56px 8.8px; border-radius: 999px; border: 1px solid hsl(var(--border)); background: hsl(var(--secondary)); white-space: nowrap; }
+.pf .chip.ok{ color: hsl(var(--mint)); border-color: hsl(var(--mint) / .4); background: hsl(var(--mint) / .08); }
+.pf .chip.warn{ color: hsl(var(--ember)); border-color: hsl(var(--ember) / .4); background: hsl(var(--ember) / .08); }
+.pf .chip.bad{ color: hsl(var(--destructive)); border-color: hsl(var(--destructive) / .4); }
+.pf .dot-live{ display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: hsl(var(--ember)); }
+.pf .brand{ display: inline-flex; align-items: center; gap: 9.6px; font-family: var(--serif); font-size: 20.8px; text-decoration: none; letter-spacing: -.01em; }
+.pf .brand-mark{ width: 28px; height: 28px; flex: none; filter: drop-shadow(0 4px 10px hsl(var(--ember) / .35)); }
+.pf .theme-btn{ width: 36px; height: 36px; border-radius: 50%; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: inherit; cursor: pointer; display: grid; place-items: center; }
+.pf label{ display: block; font-weight: 500; font-size: 14.4px; margin-bottom: 6.4px; }
+.pf input[type=text], .pf input[type=search], .pf input[type=url], .pf textarea, .pf .fake-input{ width: 100%; font: inherit; color: inherit; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 13.6px; padding: 11.2px 14.4px; }
+.pf textarea{ min-height: 76px; resize: none; }
+.pf input:focus, .pf textarea:focus{ outline: none; border-color: hsl(var(--ember)); box-shadow: 0 0 0 4px hsl(var(--ember) / .15); }
+.pf .hint{ color: hsl(var(--muted-foreground)); font-size: 13.12px; margin-top: 5.6px; }
+.pf .notice{ border-radius: 14.4px; padding: 13.6px 16px; border: 1px solid hsl(var(--border)); background: hsl(var(--secondary)); font-size: 14.72px; }
+.pf .row{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pf .avatar{ width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 600 10.88px var(--sans); color: hsl(var(--primary-foreground)); background: linear-gradient(135deg, hsl(var(--plum)), hsl(var(--ember))); }
+.pf .dx{ height: 100%; overflow-y: auto; overflow-x: hidden; position: relative; isolation: isolate; scroll-behavior: auto; }
+.pf .dx-glow{ position: absolute; inset: 0 0 auto 0; height: 960px; z-index: -1; pointer-events: none;
+  background: radial-gradient(1100px 520px at 12% -12%, hsl(var(--ember) / .10), transparent 62%), radial-gradient(800px 480px at 100% 0, hsl(var(--plum) / .06), transparent 60%); }
+.pf .dx-top{ position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 68px;
+  padding: 0 40px; background: hsl(var(--background) / .9); border-bottom: 1px solid hsl(var(--border) / .7); }
+.pf .dx-brand{ display: inline-flex; align-items: center; gap: 9.6px; text-decoration: none; font-family: var(--serif); font-size: 17.6px; letter-spacing: -.01em; min-width: 0; }
+.pf .dx-nav{ display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: hsl(var(--secondary) / .8); border: 1px solid hsl(var(--border) / .8); }
+.pf .dx-nav a{ position: relative; text-decoration: none; font-size: 14.4px; padding: 6.4px 16px; border-radius: 999px; color: hsl(var(--muted-foreground)); }
+.pf .dx-nav a.on{ color: hsl(var(--foreground)); background: hsl(var(--card)); box-shadow: 0 1px 2px hsl(var(--shadow) / .12), 0 6px 16px -10px hsl(var(--shadow) / .4); }
+.pf .dx-dot{ position: absolute; top: 5.6px; right: 7.2px; width: 6.4px; height: 6.4px; border-radius: 50%; background: hsl(var(--ember)); }
+.pf .dx-acct{ display: flex; align-items: center; justify-content: flex-end; gap: 9.6px; }
+.pf .dx-main{ max-width: 1152px; margin: 0 auto; padding: 48px 40px 80px; display: grid; gap: 48px; }
+.pf .dx-hero{ display: grid; gap: 9.6px; max-width: 704px; }
+.pf .dx-hero h1{ font-size: 54.4px; }
+.pf .dx-hero-row{ max-width: none; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+.pf .dx-hero-row > div:first-child{ display: grid; gap: 9.6px; max-width: 640px; }
+.pf .dx-lede{ color: hsl(var(--muted-foreground)); font-size: 16.8px; max-width: 640px; }
+.pf .dx-h2{ font-size: 30.4px; }
+.pf .dx-panel-open{ display: grid; gap: 9.6px; }
+.pf .nd-tabs{ display: flex; flex-wrap: wrap; gap: 6.4px; }
+.pf .nd-tabs button{ font: inherit; font-size: 14.08px; padding: 7.2px 14.4px; border-radius: 999px; border: 1px solid hsl(var(--border)); background: transparent; color: hsl(var(--muted-foreground)); cursor: pointer; }
+.pf .nd-tabs button.on{ color: hsl(var(--foreground)); background: hsl(var(--ember) / .1); border-color: hsl(var(--ember) / .55); }
+.pf.sl-landing .lp{ position: relative; height: 100%; overflow-y: auto; overflow-x: hidden; isolation: isolate; }
+.pf.sl-landing .lp-bg{ position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(1200px 600px at 12% -10%, hsl(var(--ember) / .13), transparent 60%), radial-gradient(900px 500px at 100% 10%, hsl(var(--plum) / .09), transparent 60%), radial-gradient(700px 700px at 50% 110%, hsl(var(--ember-soft) / .07), transparent 60%); }
+.pf.sl-landing .lp-bg::after{ content: ""; position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(hsl(var(--border) / .55) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / .55) 1px, transparent 1px);
+  background-size: 56px 56px; mask-image: radial-gradient(80% 60% at 50% 0, #000 30%, transparent 80%); -webkit-mask-image: radial-gradient(80% 60% at 50% 0, #000 30%, transparent 80%); }
+.pf.sl-landing .ln{ position: sticky; top: 0; z-index: 20; background: hsl(var(--background) / .85); border-bottom: 1px solid hsl(var(--border) / .6); }
+.pf.sl-landing .ln-in{ max-width: 1184px; margin: 0 auto; padding: 12.8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pf.sl-landing .ln-links{ display: flex; gap: 25.6px; font-size: 14.4px; color: hsl(var(--muted-foreground)); }
+.pf.sl-landing .ln-links a{ text-decoration: none; }
+.pf.sl-landing main{ max-width: 1184px; margin: 0 auto; padding: 0 20px; }
+.pf.sl-landing .hero{ display: grid; grid-template-columns: .86fr 1.24fr; gap: 48px; padding: 80px 0 32px; align-items: center; }
+.pf.sl-landing .hero > *{ min-width: 0; }
+.pf.sl-landing .hero h1{ font-size: 73.6px; line-height: .98; letter-spacing: -.035em; margin: 17.6px 0 20.8px; }
+.pf.sl-landing .lede{ font-size: 18.4px; max-width: 528px; color: hsl(var(--muted-foreground)); }
+.pf.sl-landing .hero-cta{ margin: 28.8px 0 17.6px; }
+.pf.sl-landing .ai-badges{ display: flex; flex-wrap: wrap; gap: 8px; }
+.pf.sl-landing .ai-badge{ display: inline-flex; align-items: center; gap: 8px; padding: 6.4px 13.6px 6.4px 8.8px; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--card) / .85); font-size: 14.08px; font-weight: 500; box-shadow: 0 6px 20px -14px hsl(var(--shadow) / .6); }
+.pf.sl-landing .ai-icon{ width: 18.4px; height: 18.4px; flex: none; }
+.pf.sl-landing .hero-facts{ list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 5.6px 17.6px; }
+.pf.sl-landing .hero-facts li{ display: inline-flex; align-items: center; gap: 7.2px; }
+.pf.sl-landing .hero-facts li::before{ content: ""; width: 6.4px; height: 6.4px; border-radius: 50%; background: hsl(var(--mint)); }
+.pf.sl-landing .win{ border: 1px solid hsl(var(--border)); border-radius: 19.2px; background: hsl(var(--card)); overflow: hidden; }
+.pf.sl-landing .win-bar{ display: flex; align-items: center; gap: 6.4px; padding: 10.4px 14.4px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--card-2)); }
+.pf.sl-landing .win-bar i{ width: 10.4px; height: 10.4px; border-radius: 50%; background: hsl(var(--border)); }
+.pf.sl-landing .win-url{ flex: 1; margin-left: 9.6px; font-size: 11.52px; color: hsl(var(--muted-foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf.sl-landing .hs{ margin: 0; display: grid; gap: 13.6px; }
+.pf.sl-landing .hs .win{ box-shadow: 0 50px 90px -40px hsl(var(--shadow) / .55), 0 0 0 1px hsl(var(--card) / .6) inset; }
+.pf.sl-landing .hs-full{ font-size: 12px; white-space: nowrap; }
+.pf.sl-landing .hs-stage{ position: relative; aspect-ratio: 1280 / 752; overflow: hidden; background: hsl(var(--background)); }
+.pf.sl-landing .hs-cap{ display: grid; gap: 8px; }
+.pf.sl-landing .hs-tabs{ display: flex; flex-wrap: wrap; gap: 5.6px; }
+.pf.sl-landing .hs-tabs button{ font: 500 13.6px var(--sans); padding: 6.08px 14.4px; border-radius: 999px; border: 1px solid hsl(var(--border)); background: transparent; color: hsl(var(--muted-foreground)); cursor: pointer; }
+.pf.sl-landing .hs-tabs button.on{ background: hsl(var(--foreground)); border-color: hsl(var(--foreground)); color: hsl(var(--background)); }
+.pf.sl-landing .mini{ position: absolute; inset: 0; background: #eef0f3; color: #14161a; font-family: system-ui, -apple-system, sans-serif; }
+.pf.sl-landing .mini-cover{ position: absolute; inset: 0 0 41.6px 0; display: grid; align-content: center; justify-items: start; gap: 11.2px; padding: 0 41.6px;
+  background: radial-gradient(420px 240px at 85% 10%, color-mix(in srgb, var(--mini-acc, #e8692c) 18%, transparent), transparent 70%); }
+.pf.sl-landing .mini-eb{ font: 600 9.92px/1.2 ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--mini-acc, #e8692c); }
+.pf.sl-landing .mini-h{ font-size: 29.6px; font-weight: 700; line-height: 1.05; letter-spacing: -.01em; max-width: 416px; }
+.pf.sl-landing .mini-p{ font-size: 13.12px; color: #5b616b; max-width: 400px; }
+.pf.sl-landing .mini-btn{ font: 600 11.84px system-ui, sans-serif; padding: 7.2px 14.4px; border-radius: 7.2px; background: var(--mini-acc, #e8692c); color: #fff; }
+.pf.sl-landing .mini-bar{ position: absolute; left: 12.8px; right: 12.8px; bottom: 8.8px; display: flex; align-items: center; gap: 6.4px; }
+.pf.sl-landing .mini-b{ font: 600 9.6px system-ui, sans-serif; padding: 4.8px 8.8px; border-radius: 5.6px; border: 1px solid #d9dde3; background: #fff; }
+.pf.sl-landing .mini-b.pri{ background: var(--mini-acc, #e8692c); color: #fff; border-color: transparent; }
+.pf.sl-landing .mini-prog{ flex: 1; height: 3px; border-radius: 3px; background: #d9dde3; overflow: hidden; }
+.pf.sl-landing .mini-prog i{ display: block; width: 10%; height: 100%; background: var(--mini-acc, #e8692c); }
+.pf.sl-landing .mini-c{ font: 600 9.28px ui-monospace, Menlo, monospace; color: #5b616b; }
+.pf.sl-setup .dx-steps{ list-style: none; padding: 0; margin: 0; display: grid; max-width: 736px; }
+.pf.sl-setup .dx-step{ position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 17.6px; padding-bottom: 36px; }
+.pf.sl-setup .dx-step:not(:last-child)::before{ content: ""; position: absolute; left: calc(22px - .5px); top: 46.4px; bottom: 3.2px; width: 1px; background: hsl(var(--border)); }
+.pf.sl-setup .dx-step.done:not(:last-child)::before{ background: hsl(var(--mint) / .45); }
+.pf.sl-setup .dx-step-n{ width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 19.2px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--muted-foreground)); }
+.pf.sl-setup .dx-step.on .dx-step-n{ background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; box-shadow: 0 8px 22px -10px hsl(var(--ember) / .8); }
+.pf.sl-setup .dx-step.done .dx-step-n{ color: hsl(var(--mint)); border-color: hsl(var(--mint) / .45); background: hsl(var(--mint) / .08); font-family: var(--sans); font-size: 16px; }
+.pf.sl-setup .dx-step-body{ display: grid; gap: 9.6px; align-content: start; padding-top: 7.2px; }
+.pf.sl-setup .dx-step-body h2{ font-size: 23.2px; }
+.pf.sl-setup .dx-step:not(.on):not(.done) .dx-step-body{ opacity: .78; }
+.pf.sl-setup .pane{ display: grid; gap: 9.6px; }
+.pf.sl-setup .pane[hidden]{ display: none; }
+.pf.sl-setup .dx-more summary{ cursor: pointer; color: hsl(var(--muted-foreground)); font-size: 14.4px; }
+.pf.sl-setup .dx-more p{ margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 7.2px; font-size: 14.4px; }
+.pf.sl-setup .dx-howto{ margin: 0; padding-left: 19.2px; display: grid; gap: 7.2px; color: hsl(var(--muted-foreground)); }
+.pf.sl-setup .dx-howto li::marker{ color: hsl(var(--ember)); font-weight: 600; }
+.pf.sl-setup .dx-howto .btn{ vertical-align: middle; }
+.pf.sl-setup .dx-panel{ max-width: 736px; border-top: 1px solid hsl(var(--border)); }
+.pf.sl-setup .dx-panel summary{ list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 17.6px 0; }
+.pf.sl-setup .dx-panel summary::-webkit-details-marker{ display: none; }
+.pf.sl-setup .dx-panel summary::after{ content: ""; width: 8.8px; height: 8.8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin-left: auto; opacity: .6; }
+.pf.sl-setup .dx-panel[open] summary::after{ transform: rotate(-135deg); }
+.pf.sl-setup .dx-panel-body{ padding-bottom: 20px; }
+.pf.sl-setup .tok{ display: grid; gap: 20px; }
+.pf.sl-setup .fake-input.ph{ color: hsl(var(--muted-foreground)); }
+.pf.sl-setup .lnk{ text-decoration: underline; text-underline-offset: 2px; }
+.pf.sl-new-demo .nd{ display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(272px, 1fr); gap: 40px; align-items: start;
+  padding: 36px; border-radius: 28px; background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 0 hsl(0 0% 100% / .5) inset, 0 40px 80px -56px hsl(var(--shadow) / .55); }
+.pf.sl-new-demo .nd-form{ display: grid; gap: 22.4px; min-width: 0; }
+.pf.sl-new-demo .nd-head{ display: grid; gap: 16px; }
+.pf.sl-new-demo .nd-head h2{ font-size: 40px; }
+.pf.sl-new-demo .nd-steps{ list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.pf.sl-new-demo .nd-steps li{ display: flex; align-items: center; gap: 8px; }
+.pf.sl-new-demo .nd-steps li + li::before{ content: ""; width: 22.4px; height: 1px; background: hsl(var(--border)); }
+.pf.sl-new-demo .nd-steps button{ display: inline-flex; align-items: center; gap: 7.2px; font: inherit; font-size: 14.08px; color: hsl(var(--muted-foreground)); background: none; border: 0; padding: 3.2px 1.6px; cursor: pointer; }
+.pf.sl-new-demo .nd-n{ width: 24.8px; height: 24.8px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; border: 1px solid hsl(var(--border)); background: hsl(var(--background)); }
+.pf.sl-new-demo .nd-steps li.on button{ color: hsl(var(--foreground)); font-weight: 500; }
+.pf.sl-new-demo .nd-steps li.on .nd-n{ background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; }
+.pf.sl-new-demo .nd-steps li.done button{ color: hsl(var(--foreground)); }
+.pf.sl-new-demo .nd-steps li.done .nd-n{ color: hsl(var(--mint)); border-color: hsl(var(--mint) / .45); background: hsl(var(--mint) / .08); }
+.pf.sl-new-demo .nd-body{ display: grid; gap: 17.6px; align-content: start; min-height: 336px; }
+.pf.sl-new-demo .nd-body[hidden]{ display: none; }
+.pf.sl-new-demo .nd-q{ font-size: 18.4px; font-weight: 500; letter-spacing: -.005em; margin: 0; }
+.pf.sl-new-demo label.nd-q{ display: block; margin-bottom: 9.6px; }
+.pf.sl-new-demo .nd-stack{ display: grid; gap: 9.6px; }
+.pf.sl-new-demo .nd-search{ position: relative; }
+.pf.sl-new-demo .nd-search svg{ position: absolute; left: 14.4px; top: 50%; transform: translateY(-50%); color: hsl(var(--muted-foreground)); pointer-events: none; }
+.pf.sl-new-demo .nd-search .fake-input{ padding-left: 40px; }
+.pf.sl-new-demo .nd-repos{ display: grid; gap: 2px; max-height: 264px; overflow-y: auto; padding: 4.8px; border-radius: 16px; border: 1px solid hsl(var(--border)); background: hsl(var(--background) / .6); }
+.pf.sl-new-demo .nd-repos button{ display: flex; align-items: center; justify-content: space-between; gap: 12px; font: inherit; font-size: 14.72px; text-align: left; color: inherit; background: transparent; border: 0; border-radius: 11.2px; padding: 8.8px 12px; cursor: pointer; min-width: 0; }
+.pf.sl-new-demo .nd-repos button.on{ background: hsl(var(--ember) / .1); box-shadow: inset 3px 0 0 hsl(var(--ember)); }
+.pf.sl-new-demo .nd-repo{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf.sl-new-demo .nd-tag{ flex: none; font-size: 11.52px; padding: 1.6px 8px; border-radius: 999px; color: hsl(var(--muted-foreground)); background: hsl(var(--secondary)); }
+.pf.sl-new-demo .nd-grid{ display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(224px, 1fr)); align-items: start; }
+.pf.sl-new-demo .nd-grid3{ grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.pf.sl-new-demo .fake-input.ta{ min-height: 76px; }
+.pf.sl-new-demo .fake-input.ph{ color: hsl(var(--muted-foreground)); }
+.pf.sl-new-demo .fake-input.nd-big{ font-family: var(--serif); font-size: 25.6px; padding: 11.2px 16px; letter-spacing: -.01em; border-color: hsl(var(--ember)); box-shadow: 0 0 0 4px hsl(var(--ember) / .15); }
+.pf.sl-new-demo .nd-choices{ display: grid; gap: 11.2px; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); }
+.pf.sl-new-demo .nd-choice{ position: relative; display: grid; gap: 4px; align-content: start; padding: 16px 16.8px 17.6px; border: 1px solid hsl(var(--border)); border-radius: 17.6px; background: hsl(var(--background) / .5); cursor: pointer; margin: 0; font-weight: 400; }
+.pf.sl-new-demo .nd-choice.on{ border-color: hsl(var(--ember)); background: hsl(var(--ember) / .06); box-shadow: 0 0 0 3px hsl(var(--ember) / .14); }
+.pf.sl-new-demo .nd-choice strong{ font-size: 16.8px; margin-top: 7.2px; }
+.pf.sl-new-demo .nd-bars{ display: inline-flex; align-items: flex-end; gap: 3px; height: 14px; }
+.pf.sl-new-demo .nd-bars i{ width: 5px; border-radius: 2px; background: hsl(var(--border)); }
+.pf.sl-new-demo .nd-bars i:nth-child(1){ height: 6px; }
+.pf.sl-new-demo .nd-bars i:nth-child(2){ height: 10px; }
+.pf.sl-new-demo .nd-bars i:nth-child(3){ height: 14px; }
+.pf.sl-new-demo .nd-bars i.on{ background: hsl(var(--ember)); }
+.pf.sl-new-demo .nd-review{ margin: 0; display: grid; border-top: 1px solid hsl(var(--border)); }
+.pf.sl-new-demo .nd-review > div{ display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; padding: 12.8px 0; border-bottom: 1px solid hsl(var(--border)); }
+.pf.sl-new-demo .nd-review dt{ color: hsl(var(--muted-foreground)); font-size: 14.08px; }
+.pf.sl-new-demo .nd-review dd{ margin: 0; overflow-wrap: anywhere; }
+.pf.sl-new-demo .nd-edit{ font: inherit; font-size: 13.6px; color: hsl(var(--ember)); background: none; border: 0; cursor: pointer; padding: 0; }
+.pf.sl-new-demo .nd-foot{ display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 17.6px; border-top: 1px solid hsl(var(--border)); }
+.pf.sl-new-demo .nd-foot .back[hidden]{ display: inline-flex; visibility: hidden; }
+.pf.sl-new-demo .nd-cover{ position: sticky; top: 96px; display: grid; gap: 12px; container-type: inline-size; }
+.pf.sl-new-demo .nd-slide{ position: relative; aspect-ratio: 16 / 9; border-radius: 17.6px; overflow: hidden; display: grid; align-content: center; justify-items: start; gap: 3.5cqw; padding: 0 9cqw; border: 1px solid hsl(var(--border));
+  box-shadow: 0 30px 60px -40px hsl(var(--shadow) / .7), 0 0 0 6px hsl(var(--secondary) / .7); }
+.pf.sl-new-demo .nd-slide.light{ background: radial-gradient(70% 90% at 92% 0, hsl(22 88% 50% / .18), transparent 70%), #f6f7f9; border-color: #e3e6eb; color: #14171c; }
+.pf.sl-new-demo .nd-slide.light .nd-slide-src, .pf.sl-new-demo .nd-slide.light .nd-slide-by, .pf.sl-new-demo .nd-slide.light .nd-slide-title.ph{ color: #5b6270; }
+.pf.sl-new-demo .nd-slide.dark{ background: radial-gradient(70% 90% at 92% 0, hsl(var(--ember) / .22), transparent 70%), #0f1115; border-color: #2a2f38; color: #eceef2; }
+.pf.sl-new-demo .nd-slide.dark .nd-slide-src, .pf.sl-new-demo .nd-slide.dark .nd-slide-by{ color: #9aa1ad; }
+.pf.sl-new-demo .nd-slide-src{ position: absolute; top: 6cqw; left: 9cqw; right: 9cqw; font-size: max(9.92px, 3.2cqw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf.sl-new-demo .nd-slide-title{ font-family: var(--serif); font-size: 8.5cqw; line-height: 1.04; letter-spacing: -.02em; text-wrap: balance; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pf.sl-new-demo .nd-slide-by{ font-size: max(9.92px, 3.4cqw); }
+.pf.sl-new-demo .nd-slide-btn{ font-size: max(9.6px, 3.2cqw); padding: 1.6cqw 3.6cqw; border-radius: 999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.pf.sl-new-demo .nd-cover-cap{ display: flex; align-items: center; gap: 8.8px; font-size: 14.08px; color: hsl(var(--muted-foreground)); padding-left: 4px; }
+.pf.sl-new-demo .ui-select{ position: relative; min-width: 0; }
+.pf.sl-new-demo .ui-label{ display: block; font-weight: 500; font-size: 14.4px; margin-bottom: 6.4px; }
+.pf.sl-new-demo .ui-trigger{ width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 9.6px; font: inherit; color: inherit; text-align: left; cursor: pointer; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 13.6px; padding: 11.2px 14.4px; }
+.pf.sl-new-demo .ui-trigger svg{ flex: none; color: hsl(var(--muted-foreground)); }
+.pf.sl-chat .ch{ height: 100%; display: grid; grid-template-rows: auto 1fr auto; background: hsl(var(--background)); }
+.pf.sl-chat .ch-top{ display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14.4px 40px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+.pf.sl-chat .ch-who{ display: flex; align-items: center; gap: 12.8px; }
+.pf.sl-chat .ch-ai{ display: inline-flex; gap: 4.8px; }
+.pf.sl-chat .ai-icon{ width: 20.8px; height: 20.8px; flex: none; }
+.pf.sl-chat .ch-log{ overflow-y: auto; padding: 24px 0 32px; display: grid; gap: 12.8px; align-content: start; }
+.pf.sl-chat .ch-log > *{ width: 100%; max-width: 736px; margin: 0 auto; }
+.pf.sl-chat .ch-log > [hidden]{ display: none; }
+.pf.sl-chat .ch-msg{ font-size: 15.68px; line-height: 1.6; }
+.pf.sl-chat .ch-msg.me{ width: auto; max-width: 544px; margin-right: calc(50% - 368px); justify-self: end; padding: 12.8px 17.6px; border-radius: 17.6px 17.6px 4.8px 17.6px; background: hsl(var(--secondary)); }
+.pf.sl-chat .ch-msg.ai{ padding: 3.2px 1.6px; }
+.pf.sl-chat .ch-call{ border: 1px solid hsl(var(--border)); border-radius: 14.4px; background: hsl(var(--card)); padding: 12px 16px; display: grid; gap: 6.4px; box-shadow: 0 10px 24px -20px hsl(var(--shadow) / .5); }
+.pf.sl-chat .ch-call p{ font-size: 14.08px; color: hsl(var(--muted-foreground)); }
+.pf.sl-chat .ch-call-h{ display: flex; flex-wrap: wrap; align-items: center; gap: 7.2px; }
+.pf.sl-chat .ch-tool{ font: 600 12.8px var(--mono); color: hsl(var(--foreground)); background: hsl(var(--ember) / .1); border: 1px solid hsl(var(--ember) / .35); border-radius: 6.4px; padding: 1.28px 7.2px; }
+.pf.sl-chat .ch-arg{ font: 12.48px var(--mono); color: hsl(var(--muted-foreground)); }
+.pf.sl-chat .ch-conn{ font-size: 12.48px; color: hsl(var(--muted-foreground)); margin-right: auto; }
+.pf.sl-chat .ch-shots{ display: flex; gap: 6.4px; }
+.pf.sl-chat .ch-shots i{ width: 73.6px; height: 41.6px; border-radius: 5.6px; border: 1px solid hsl(var(--border)); background: linear-gradient(180deg, hsl(var(--card-2)) 0 22%, hsl(var(--background)) 22%); }
+.pf.sl-chat .ch-shots i.bad{ border-color: hsl(var(--destructive) / .6); box-shadow: 0 0 0 2px hsl(var(--destructive) / .15); }
+.pf.sl-chat .ch-input{ margin: 0 auto 17.6px; width: 736px; display: flex; justify-content: space-between; align-items: center; padding: 12px 14.4px 12px 17.6px; border: 1px solid hsl(var(--border)); border-radius: 19.2px; background: hsl(var(--card)); }
+.pf.sl-chat .ch-send{ width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: hsl(var(--foreground)); color: hsl(var(--background)); font-weight: 700; }
+.pf.sl-demos .dl{ display: grid; gap: 14.4px; }
+.pf.sl-demos .dl-list{ list-style: none; margin: 0; padding: 0; border-top: 1px solid hsl(var(--border)); }
+.pf.sl-demos .dl-row{ display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9.6px 24px; align-items: center; padding: 17.6px 4px; border-bottom: 1px solid hsl(var(--border)); }
+.pf.sl-demos .dl-main{ display: grid; gap: 4.8px; min-width: 0; }
+.pf.sl-demos .dl-title{ display: flex; flex-wrap: wrap; align-items: center; gap: 4.8px 12px; }
+.pf.sl-demos .dl-title strong{ font-size: 16.8px; font-weight: 500; }
+.pf.sl-demos .dl-pill{ display: inline-flex; align-items: center; gap: 6.4px; font-size: 12px; padding: 1.92px 9.6px; border-radius: 999px; background: hsl(var(--secondary)); color: hsl(var(--muted-foreground)); }
+.pf.sl-demos .dl-pill.ok{ color: hsl(var(--mint)); background: hsl(var(--mint) / .1); }
+.pf.sl-demos .dl-pill.run{ color: hsl(var(--ember)); background: hsl(var(--ember) / .1); }
+.pf.sl-demos .dl-pill.bad{ color: hsl(var(--destructive)); background: hsl(var(--destructive) / .08); }
+.pf.sl-demos .dl-pulse{ width: 6.4px; height: 6.4px; border-radius: 50%; background: currentColor; }
+.pf.sl-demos .dl-meta{ display: flex; flex-wrap: wrap; gap: 2.4px 17.6px; font-size: 13.6px; color: hsl(var(--muted-foreground)); }
+.pf.sl-demos .dl-phase{ font-size: 14.4px; color: hsl(var(--ember)); }
+.pf.sl-demos .dl-actions{ display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6.4px; }
+.pf.sl-demos .dl-more{ position: relative; }
+.pf.sl-demos .dl-more summary{ list-style: none; padding: 6.4px 8.8px; }
+.pf.sl-demos .dl-more summary::-webkit-details-marker{ display: none; }
+.pf.sl-demos .dl-actions > span.btn{ padding: 6.4px 8.8px; }
+.pf.sl-demos .dl-menu{ position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; min-width: 208px; display: grid; padding: 5.6px; border-radius: 14.4px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: 0 24px 48px -24px hsl(var(--shadow) / .55); }
+.pf.sl-demos .dl-menu a, .pf.sl-demos .dl-menu button{ display: block; text-align: left; font: inherit; font-size: 14.4px; color: inherit; text-decoration: none; background: none; border: 0; padding: 8px 11.2px; border-radius: 8.8px; cursor: pointer; }
+.pf.sl-demos .dl-menu a:hover, .pf.sl-demos .dl-menu button:hover{ background: hsl(var(--secondary)); }
+.pf.sl-demos .dl-menu .danger{ color: hsl(var(--destructive)); }
+.pf.sl-demos .dl-preview{ grid-column: 1 / -1; width: 100%; aspect-ratio: 16 / 9; border: 1px solid hsl(var(--border)); border-radius: 16px; background: #eef0f3; overflow: hidden; }
+.pf.sl-demos .dl-preview[hidden]{ display: none; }
+.pf.sl-demos .pv{ height: 100%; display: grid; align-content: center; justify-items: start; gap: 16px; padding: 0 80px; background: radial-gradient(600px 300px at 85% 10%, rgba(232, 105, 44, .16), transparent 70%); color: #14161a; font-family: system-ui, sans-serif; }
+.pf.sl-demos .pv-eb{ font: 600 12.8px ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: #e8692c; }
+.pf.sl-demos .pv-h{ font-size: 41.6px; font-weight: 700; line-height: 1.05; }
+.pf.sl-demos .pv-p{ color: #5b616b; }
+.pf.sl-demos .pv-btn{ font-weight: 600; padding: 9.6px 17.6px; border-radius: 8px; background: #e8692c; color: #fff; }
+.pf.sl-demos .dl-foot{ margin-top: 6.4px; }
+.pf.sl-demos .lnk{ text-decoration: underline; text-underline-offset: 2px; }
+.pf.sl-demos .rv-back{ position: absolute; inset: 0; z-index: 40; background: hsl(var(--foreground) / .35); }
+.pf.sl-demos .rv{ position: absolute; z-index: 41; left: 50%; top: 24px; bottom: 24px; transform: translateX(-50%); width: 896px; display: flex; flex-direction: column; padding: 0; border: 1px solid hsl(var(--border)); border-radius: 17.6px; background: hsl(var(--background)); box-shadow: 0 30px 80px -30px hsl(var(--shadow) / .55); overflow: hidden; }
+.pf.sl-demos .rv[hidden], .pf.sl-demos .rv-back[hidden]{ display: none; }
+.pf.sl-demos .rv-head{ display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+.pf.sl-demos .rv-head h2{ font-size: 25.6px; }
+.pf.sl-demos .rv-body{ overflow: auto; padding: 17.6px 20px 24px; }
+.pf.sl-demos .md[hidden]{ display: none; }
+.pf.sl-demos .md{ display: grid; gap: 12.8px; font-size: 14.88px; line-height: 1.6; max-width: 100%; }
+.pf.sl-demos .md h2{ font-size: 27.2px; margin-top: 3.2px; }
+.pf.sl-demos .md h3{ font-size: 20.8px; margin-top: 12.8px; }
+.pf.sl-demos .md p, .pf.sl-demos .md ul{ margin: 0; }
+.pf.sl-demos .md ul{ padding-left: 19.2px; display: grid; gap: 4px; }
+.pf.sl-demos .md code{ font-family: var(--mono); font-size: .85em; padding: 0.8px 4.8px; border-radius: 4.8px; background: hsl(var(--secondary)); }
+.pf.sl-demos .md-table{ overflow-x: auto; border: 1px solid hsl(var(--border)); border-radius: 12.8px; }
+.pf.sl-demos .md table{ width: 100%; border-collapse: collapse; font-size: 13.76px; }
+.pf.sl-demos .md th, .pf.sl-demos .md td{ text-align: left; vertical-align: top; padding: 8px 11.2px; border-bottom: 1px solid hsl(var(--border)); }
+.pf.sl-demos .md th{ background: hsl(var(--secondary)); font-weight: 600; white-space: nowrap; }
+.pf.sl-demos .md tr:last-child td{ border-bottom: 0; }
+.pf.sl-usage .db-seg{ display: inline-flex; border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 2px; background: hsl(var(--secondary)); }
+.pf.sl-usage .db-seg button{ font: inherit; font-size: 12.8px; border: 0; background: transparent; color: hsl(var(--muted-foreground)); padding: 4px 11.2px; border-radius: 999px; cursor: pointer; }
+.pf.sl-usage .db-seg button.on{ background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: 0 1px 3px hsl(var(--shadow) / .18); }
+.pf.sl-usage .db-tiles{ display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(144px, 1fr)); }
+.pf.sl-usage .db-tile{ display: grid; gap: 2.4px; padding: 16px 17.6px; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
+.pf.sl-usage .db-tile-v{ font-family: var(--serif); font-weight: 400; font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.pf.sl-usage .db-chart{ margin: 0; display: grid; gap: 6.4px; }
+.pf.sl-usage .db-chart-wrap{ position: relative; min-width: 544px; }
+.pf.sl-usage .db-chart svg{ width: 100%; height: auto; display: block; overflow: visible; }
+.pf.sl-usage .db-grid{ stroke: hsl(var(--border)); stroke-width: 1; }
+.pf.sl-usage .db-axis{ fill: hsl(var(--muted-foreground)); font-size: 11px; font-family: var(--sans); }
+.pf.sl-usage .db-bar{ fill: hsl(var(--primary) / .78); }
+.pf.sl-usage .db-bar.on{ fill: hsl(var(--primary)); }
+.pf.sl-usage .db-tip{ position: absolute; top: 4px; pointer-events: none; display: grid; gap: 1.6px; padding: 7.2px 9.6px; border-radius: 9.6px; font-size: 12.48px; white-space: nowrap; background: hsl(var(--card)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); box-shadow: 0 10px 24px -14px hsl(var(--shadow) / .6); }
+.pf.sl-usage .db-tip[hidden]{ display: none; }
+.pf.sl-usage .db-table{ width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 9.6px; }
+.pf.sl-usage .db-table th, .pf.sl-usage .db-table td{ text-align: left; padding: 8.8px 8px; border-bottom: 1px solid hsl(var(--border)); }
+.pf.sl-usage .db-table th{ font-weight: 500; color: hsl(var(--muted-foreground)); }
+.pf.sl-usage .db-table .num{ text-align: right; font-variant-numeric: tabular-nums; }
+</style></head>
+<body>
+<div id="dk-viewport"><div id="dk-stage" role="application" aria-roledescription="presentation"><div class="dk-bar" id="dk-bar"><button class="dk-btn" id="dk-back" type="button">← Back</button><div class="dk-progress" aria-hidden="true"><i></i></div><span class="dk-count" id="dk-count"></span><button class="dk-btn" id="dk-fs" type="button" title="Full screen (F)">Full screen</button><button class="dk-btn primary" id="dk-next" type="button">Next →</button></div></div></div><div class="dk-rotate">Rotate your device for a larger view.</div>
+<template id="tpl-landing"><div class="lp">
+  <div class="lp-bg"></div>
+  <header class="ln">
+    <div class="ln-in">
+      <a class="brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="gl0" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#FDA635"/><stop offset=".55" stop-color="#F26A1B"/><stop offset="1" stop-color="#D4470C"/></linearGradient><linearGradient id="sl0" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect width="64" height="64" rx="18" fill="url(#gl0)"/><rect width="64" height="64" rx="18" fill="url(#sl0)"/><path d="M26 19 13 32l13 13" stroke="#FFF8F0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z" fill="#FFF8F0" stroke="#D4470C" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="brand-text">antm</span></a>
+      <nav class="ln-links" aria-label="Sections"><a>Features</a><a>Product</a><a>Samples</a><a>How it works</a><a>Safety</a><a>FAQ</a></nav>
+      <div class="row" style="gap:8px">
+        <button class="theme-btn" type="button" aria-label="Colour mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+        <a class="btn primary sm" data-act="start">Get started</a>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="ai-badges" aria-label="Works with">
+          <span class="ai-badge"><svg class="ai-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" /></svg>for Claude</span>
+          <span class="ai-badge"><svg class="ai-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" /></svg>for ChatGPT</span>
+        </div>
+        <h1>Your code, as a demo people can <span class="accent">click.</span></h1>
+        <p class="lede">Pick a repository and describe the demo. Claude or ChatGPT, in your own account, rebuilds the real screens from the code; antm checks every slide in a browser and hands you one HTML file anyone can open.</p>
+        <div class="row hero-cta">
+          <a class="btn primary lg" data-act="start">Build a demo</a>
+          <a class="btn lg ghost" data-act="watch">Watch one being built</a>
+        </div>
+        <ul class="hero-facts small muted">
+          <li>Private repositories, read-only</li>
+          <li>Nothing pushed to your code</li>
+          <li>GitHub, Azure DevOps, GitLab, Bitbucket or a zip</li>
+        </ul>
+      </div>
+      <div class="hero-demo">
+        <figure class="hs">
+          <div class="win">
+            <div class="win-bar">
+              <i></i><i></i><i></i>
+              <span class="win-url mono" data-k="url">ultramem.html · built from github.com/sanath1599/UltraMem</span>
+              <a class="hs-full">Open full screen</a>
+            </div>
+            <div class="hs-stage">
+              <div class="mini" data-k="mini">
+                <div class="mini-cover">
+                  <p class="mini-eb" data-k="eb">UltraMem</p>
+                  <p class="mini-h" data-k="title">Meetings in, memory out</p>
+                  <p class="mini-p" data-k="tag">An AI note taker: meeting audio in, summaries, tasks and reminders out, with a memory map of the people and topics.</p>
+                  <span class="mini-btn">Start</span>
+                </div>
+                <div class="mini-bar"><span class="mini-b">← Back</span><span class="mini-prog"><i></i></span><span class="mini-c">1 / 10</span><span class="mini-b pri">Next →</span></div>
+              </div>
+            </div>
+          </div>
+          <figcaption class="hs-cap">
+            <div class="hs-tabs" role="tablist" aria-label="Sample demos">
+              <button type="button" role="tab" class="on" data-s="0">UltraMem</button>
+              <button type="button" role="tab" data-s="1">c0py.me</button>
+              <button type="button" role="tab" data-s="2">Good Returns</button>
+            </div>
+            <p class="small muted" data-k="cap">A real output, not a mock-up: click into it and use the arrow keys. 81 views were checked in a browser before it was saved.</p>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+</div>
+</template>
+<template id="tpl-setup"><div class="dx">
+  <div class="dx-glow"></div>
+  <header class="dx-top"><a class="dx-brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="gt1" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#FDA635"/><stop offset=".55" stop-color="#F26A1B"/><stop offset="1" stop-color="#D4470C"/></linearGradient><linearGradient id="st1" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect width="64" height="64" rx="18" fill="url(#gt1)"/><rect width="64" height="64" rx="18" fill="url(#st1)"/><path d="M26 19 13 32l13 13" stroke="#FFF8F0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z" fill="#FFF8F0" stroke="#D4470C" stroke-width="1.6" stroke-linejoin="round"/></svg><span>antm</span></a><nav class="dx-nav" aria-label="Dashboard"><a data-nav="Demos" class="">Demos</a><a data-nav="Usage" class="">Usage</a><a data-nav="Setup" class="on">Setup<i class="dx-dot"></i></a></nav><div class="dx-acct"><span class="avatar" aria-hidden="true">SS</span><span class="small mono dx-login">sanath1599</span><button class="theme-btn" type="button" aria-label="Colour mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="btn ghost sm" type="button">Sign out</button></div></header>
+  <main class="dx-main">
+    <section class="dx-hero">
+      <h1>Set up once, in three steps</h1>
+      <p class="dx-lede">Connect your code and your Claude or ChatGPT account. After this, every demo starts from one short form.</p>
+    </section>
+    <ol class="dx-steps">
+      <li class="dx-step done s1">
+        <span class="dx-step-n">✓</span>
+        <div class="dx-step-body">
+          <h2>Sign in with GitHub</h2>
+          <p class="muted">Signed in as <span class="mono">sanath1599</span>.</p>
+          <p class="muted">The GitHub App can read repositories on 1 account. <a class="lnk" data-t="Opens the GitHub App's install page to change which repositories antm may read.">Choose repositories</a></p>
+        </div>
+      </li>
+      <li class="dx-step on s2">
+        <span class="dx-step-n">2</span>
+        <div class="dx-step-body">
+          <h2>Connect Claude or ChatGPT</h2>
+          <p class="muted">Pick the assistant you use; you can connect both. It writes the demo on your own plan and reaches this site through the connector.</p>
+          <div class="nd-tabs" role="tablist" aria-label="Assistant">
+            <button type="button" role="tab" class="on" data-tab="claude">Claude</button>
+            <button type="button" role="tab" data-tab="chatgpt">ChatGPT</button>
+          </div>
+          <div class="pane" data-pane="claude">
+            <p class="muted">claude.ai opens with everything filled in. Click <strong>Add</strong>, then <strong>Connect</strong>, then <strong>Allow</strong> here.</p>
+            <div class="row">
+              <a class="btn primary add" data-wait="Waiting for claude.ai…">Add to Claude</a>
+              <span class="small muted wait"></span>
+            </div>
+            <details class="dx-more">
+              <summary>Add it by hand instead</summary>
+              <p>In claude.ai open Customize → Connectors → <strong>Add custom connector</strong>.</p>
+              <p>Name <span class="mono">Animated Technical Interactive</span> <button class="btn sm" type="button" data-copy>Copy</button> (exactly)</p>
+              <p>URL <span class="mono">https://app.antm.ai/api/mcp</span> <button class="btn sm" type="button" data-copy>Copy</button></p>
+            </details>
+          </div>
+          <div class="pane" data-pane="chatgpt" hidden>
+            <ol class="dx-howto">
+              <li>In ChatGPT, turn on <strong>Developer mode</strong> (Settings; paid plans). Workspace admins may need to allow custom plugins.</li>
+              <li>Open <a class="lnk">ChatGPT plugins</a>, click <strong>+</strong> and choose <strong>Add custom MCP server</strong>.</li>
+              <li>Name it <span class="mono">Animated Technical Interactive</span> <button class="btn sm" type="button" data-copy>Copy</button> and enter the URL <span class="mono">https://app.antm.ai/api/mcp</span> <button class="btn sm" type="button" data-copy>Copy</button></li>
+              <li>Choose <strong>OAuth</strong> for authentication, confirm, then <strong>Create as a plugin</strong> and install it.</li>
+              <li>Sign in with GitHub when asked and click <strong>Allow</strong>. This page updates by itself.</li>
+            </ol>
+            <div class="row">
+              <a class="btn primary add" data-wait="Waiting for ChatGPT…">Open ChatGPT plugins</a>
+              <span class="small muted wait"></span>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li class="dx-step s3">
+        <span class="dx-step-n">3</span>
+        <div class="dx-step-body">
+          <h2>Let builds run without interruptions</h2>
+          <div class="pane" data-pane="claude">
+            <p class="muted">claude.ai asks before each connector tool by default. Open the connector in claude.ai and set its tool permissions to <strong>Always allow</strong>. You can also choose <strong>Always allow</strong> the first time a build asks.</p>
+            <div><a class="btn" data-t="Opens claude.ai's connector settings.">Open connector settings</a></div>
+          </div>
+          <div class="pane" data-pane="chatgpt" hidden>
+            <p class="muted">ChatGPT asks you to confirm each step that saves part of the demo. Approve them as they come up; where ChatGPT offers to remember the choice for the conversation, accept it so the build keeps going.</p>
+          </div>
+        </div>
+      </li>
+    </ol>
+    <details class="dx-panel" id="access">
+      <summary><span><strong>Azure DevOps, GitLab or Bitbucket</strong><span class="muted small"> · optional</span></span><span class="muted small">Add a read-only token</span></summary>
+      <div class="dx-panel-body tok">
+        <p class="small muted">GitHub works through the GitHub App. For other hosts, save a read-only access token. Tokens are encrypted on this server and are never sent to Claude or ChatGPT.</p>
+        <div class="row" style="align-items:end">
+          <div style="flex:1 1 192px"><label>Host</label><div class="fake-input">dev.azure.com</div></div>
+          <div style="flex:1 1 192px"><label>Label <span class="muted">(optional)</span></label><div class="fake-input ph">e.g. Contoso Azure DevOps</div></div>
+        </div>
+        <div class="row" style="align-items:end">
+          <div style="flex:2 1 256px"><label>Access token</label><div class="fake-input">&nbsp;</div></div>
+          <div style="flex:1 1 160px"><label>Username <span class="muted">(optional)</span></label><div class="fake-input ph">pat</div></div>
+        </div>
+        <p class="hint">Azure DevOps: User settings → Personal access tokens → New token, scope Code: Read. For *.visualstudio.com organisations, enter that host instead.</p>
+        <div><button class="btn primary" type="button" disabled>Save token</button></div>
+      </div>
+    </details>
+  </main>
+</div>
+</template>
+<template id="tpl-new-demo"><div class="dx">
+  <div class="dx-glow"></div>
+  <header class="dx-top"><a class="dx-brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="gt2" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#FDA635"/><stop offset=".55" stop-color="#F26A1B"/><stop offset="1" stop-color="#D4470C"/></linearGradient><linearGradient id="st2" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect width="64" height="64" rx="18" fill="url(#gt2)"/><rect width="64" height="64" rx="18" fill="url(#st2)"/><path d="M26 19 13 32l13 13" stroke="#FFF8F0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z" fill="#FFF8F0" stroke="#D4470C" stroke-width="1.6" stroke-linejoin="round"/></svg><span>antm</span></a><nav class="dx-nav" aria-label="Dashboard"><a data-nav="Demos" class="on">Demos</a><a data-nav="Usage" class="">Usage</a><a data-nav="Setup" class="">Setup</a></nav><div class="dx-acct"><span class="avatar" aria-hidden="true">SS</span><span class="small mono dx-login">sanath1599</span><button class="theme-btn" type="button" aria-label="Colour mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="btn ghost sm" type="button">Sign out</button></div></header>
+  <main class="dx-main">
+    <section class="nd" aria-labelledby="nd-h">
+      <div class="nd-form">
+        <div class="nd-head">
+          <h2 id="nd-h">New demo</h2>
+          <ol class="nd-steps" aria-label="Steps">
+            <li data-i="0"><button type="button"><span class="nd-n">1</span>Code</button></li>
+            <li data-i="1"><button type="button"><span class="nd-n">2</span>Presentation</button></li>
+            <li data-i="2"><button type="button"><span class="nd-n">3</span>Details</button></li>
+            <li data-i="3"><button type="button"><span class="nd-n">4</span>Review</button></li>
+          </ol>
+        </div>
+
+        <div class="nd-body" data-b="0">
+          <p class="nd-q">Source code</p>
+          <div class="nd-tabs" role="tablist" aria-label="Where the code is">
+            <button type="button" role="tab" class="on">GitHub</button>
+            <button type="button" role="tab">Azure DevOps, GitLab, Bitbucket</button>
+            <button type="button" role="tab">Zip file</button>
+          </div>
+          <div class="nd-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <div class="fake-input ph">Search 14 repositories</div>
+          </div>
+          <div class="nd-repos" role="listbox" aria-label="Repositories">
+            <button type="button" class="on"><span class="nd-repo"><span class="muted">sanath1599/</span>animated-interactive</span></button>
+            <button type="button"><span class="nd-repo"><span class="muted">sanath1599/</span>c0py.me</span></button>
+            <button type="button"><span class="nd-repo"><span class="muted">sanath1599/</span>Good-Returns</span></button>
+            <button type="button"><span class="nd-repo"><span class="muted">sanath1599/</span>UltraMem</span><span class="nd-tag">Private</span></button>
+            <button type="button"><span class="nd-repo"><span class="muted">sanath1599/</span>notes-api</span><span class="nd-tag">Private</span></button>
+          </div>
+          <div class="ui-select">
+            <span class="ui-label">Branch</span>
+            <button type="button" class="ui-trigger"><span>main</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+          </div>
+        </div>
+
+        <div class="nd-body" data-b="1" hidden>
+          <div>
+            <label class="nd-q">Title</label>
+            <div class="fake-input nd-big">How antm works</div>
+          </div>
+          <div class="nd-stack">
+            <span class="nd-q">Coverage</span>
+            <div class="nd-choices">
+              <label class="nd-choice"><span class="nd-bars"><i class="on"></i><i></i><i></i></span><strong>Brief</strong><span class="small">4–6 slides</span><span class="small muted">The home screen and the workflows that matter most.</span></label>
+              <label class="nd-choice on"><span class="nd-bars"><i class="on"></i><i class="on"></i><i></i></span><strong>Standard</strong><span class="small">One slide per area</span><span class="small muted">Every major area or workflow, three to five steps each.</span></label>
+              <label class="nd-choice"><span class="nd-bars"><i class="on"></i><i class="on"></i><i class="on"></i></span><strong>Detailed</strong><span class="small">Every page and state</span><span class="small muted">All pages and roles, with empty and error states.</span></label>
+            </div>
+          </div>
+          <div class="nd-stack theme">
+            <span class="nd-q">Colour mode</span>
+            <div class="nd-tabs">
+              <button type="button" role="radio" class="on" data-theme-opt="light">Light</button>
+              <button type="button" role="radio" data-theme-opt="dark">Dark</button>
+            </div>
+            <p class="hint">The deck is built in this mode only, with no light/dark switch for viewers.</p>
+          </div>
+        </div>
+
+        <div class="nd-body" data-b="2" hidden>
+          <p class="nd-q">Extra details <span class="muted">(optional)</span></p>
+          <div class="nd-grid">
+            <div><label>Audience</label><div class="fake-input">Product and engineering leads</div></div>
+            <div class="ui-select"><span class="ui-label">Slide language</span><button type="button" class="ui-trigger"><span>English</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>
+          </div>
+          <div class="nd-grid">
+            <div><label>Focus on</label><div class="fake-input ta">Setup, the New demo form, and following a build</div></div>
+            <div><label>Leave out</label><div class="fake-input ta ph">Admin pages, unfinished features</div></div>
+          </div>
+          <div><label>Notes for the assistant</label><div class="fake-input ta ph">Slide order, the story to tell, sample data to use</div></div>
+          <div class="nd-grid nd-grid3 byline">
+            <div><label>Presenter</label><div class="fake-input">Sanath Swaroop</div></div>
+            <div><label>Organization</label><div class="fake-input">antm</div></div>
+            <div><label>Date</label><div class="fake-input">10/30/2026</div></div>
+          </div>
+        </div>
+
+        <div class="nd-body" data-b="3" hidden>
+          <p class="nd-q">Review</p>
+          <dl class="nd-review">
+            <div><dt>Code</dt><dd>sanath1599/animated-interactive, main</dd><button type="button" class="nd-edit" data-go="0">Change</button></div>
+            <div><dt>Title</dt><dd>How antm works</dd><button type="button" class="nd-edit" data-go="1">Change</button></div>
+            <div><dt>Coverage</dt><dd>Standard, one slide per area</dd><button type="button" class="nd-edit" data-go="1">Change</button></div>
+            <div><dt>Colour mode</dt><dd data-k="mode">Light</dd><button type="button" class="nd-edit" data-go="1">Change</button></div>
+            <div><dt>Extras</dt><dd>for Product and engineering leads, focus areas, cover details</dd><button type="button" class="nd-edit" data-go="2">Change</button></div>
+          </dl>
+          <div class="nd-stack asst">
+            <span class="nd-q">Build with</span>
+            <div class="nd-tabs">
+              <button type="button" role="radio" class="on" data-a="Claude">Claude</button>
+              <button type="button" role="radio" data-a="ChatGPT">ChatGPT</button>
+            </div>
+          </div>
+          <p class="small muted" data-k="asst-note">A new claude.ai chat opens with your request typed in. Pick Opus or Sonnet there and press send; if it asks to use the connector, choose Always allow.</p>
+        </div>
+
+        <div class="nd-foot">
+          <button class="btn ghost back" type="button">Back</button>
+          <button class="btn primary go" type="button">Continue</button>
+        </div>
+      </div>
+
+      <aside class="nd-cover" aria-label="Cover slide preview">
+        <div class="nd-slide light">
+          <span class="nd-slide-src">sanath1599/animated-interactive, main</span>
+          <p class="nd-slide-title" data-k="title">How antm works</p>
+          <p class="nd-slide-by" data-k="by">Presented by Sanath Swaroop  ·  antm  ·  October 30, 2026</p>
+          <span class="nd-slide-btn">Start</span>
+        </div>
+        <p class="nd-cover-cap"><span class="nd-bars"><i class="on"></i><i class="on"></i><i></i></span> Standard: one slide per area</p>
+      </aside>
+    </section>
+  </main>
+</div>
+</template>
+<template id="tpl-chat"><div class="ch">
+  <header class="ch-top">
+    <span class="ch-who"><span class="ch-ai"><svg class="ai-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" /></svg><svg class="ai-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" /></svg></span><span><strong>Your Claude or ChatGPT chat</strong><span class="muted small"> · the assistant side of a build (illustrative)</span></span></span>
+    <span class="chip warn" data-k="state"><span class="dot-live"></span>building</span>
+  </header>
+  <div class="ch-log">
+    <div class="ch-msg me" data-at="0">Build my interactive demo “How antm works” with the Animated Technical Interactive connector: call start_demo with requestId gen_5c1e9a… and follow the guide it returns.</div>
+
+    <div class="ch-call" data-at="0">
+      <div class="ch-call-h"><span class="ch-tool">start_demo</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">done</span></div>
+      <p>Workspace ready: sanath1599/animated-interactive, main · 412 files, 3 secret-like files removed. Returned the guide: read the code, plan, styles, each screen, finish.</p>
+    </div>
+
+    <div class="ch-call" data-at="1">
+      <div class="ch-call-h"><span class="ch-tool">read_files</span><span class="ch-tool">search_code</span><span class="ch-tool">view_images</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">done</span></div>
+      <p>Read app/page.tsx, components/dashboard/new-demo.tsx, setup.tsx, demos.tsx, usage.tsx, app/globals.css, app/app.css and 38 more; looked at docs/landing.png and public/logo.svg.</p>
+    </div>
+
+    <div class="ch-call" data-at="2">
+      <div class="ch-call-h"><span class="ch-tool">save_demo_plan</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">saved</span></div>
+      <p>9 slides at standard detail: welcome, landing, setup, new demo, chat, your demos, usage, your turn, close.</p>
+    </div>
+    <div class="ch-call" data-at="2">
+      <div class="ch-call-h"><span class="ch-tool">save_demo_styles</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">saved</span></div>
+      <p>Ember #F0620F, warm paper background, Geist and a serif display, .75rem radius, the dashboard top bar and buttons.</p>
+    </div>
+
+    <div class="ch-call" data-at="3">
+      <div class="ch-call-h"><span class="ch-tool">save_demo_screen</span><span class="ch-arg">setup</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip warn">1 problem</span></div>
+      <p>Rendered 5 steps in Chromium. Step 3: clipped text in “.dx-howto li”. Screenshots returned for comparison.</p>
+      <div class="ch-shots"><i></i><i></i><i class="bad"></i><i></i><i></i></div>
+    </div>
+    <div class="ch-call" data-at="3">
+      <div class="ch-call-h"><span class="ch-tool">save_demo_screen</span><span class="ch-arg">setup</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">clean</span></div>
+      <p>Fixed the list width and saved again: 5 of 5 steps clean.</p>
+    </div>
+
+    <div class="ch-call" data-at="4">
+      <div class="ch-call-h"><span class="ch-tool">finish_demo</span><span class="ch-conn">Animated Technical Interactive</span><span class="chip ok">done</span></div>
+      <p>Checked the remaining views: 34 checked, all clean. Wrote the verification and evidence reports.</p>
+    </div>
+    <div class="ch-msg ai" data-at="4">Your demo “How antm works” is ready on your antm dashboard, with a preview, the HTML download and both reports.</div>
+  </div>
+  <div class="ch-input"><span class="muted">Reply…</span><span class="ch-send">↑</span></div>
+</div>
+</template>
+<template id="tpl-demos"><div class="dx">
+  <div class="dx-glow"></div>
+  <header class="dx-top"><a class="dx-brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="gt3" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#FDA635"/><stop offset=".55" stop-color="#F26A1B"/><stop offset="1" stop-color="#D4470C"/></linearGradient><linearGradient id="st3" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect width="64" height="64" rx="18" fill="url(#gt3)"/><rect width="64" height="64" rx="18" fill="url(#st3)"/><path d="M26 19 13 32l13 13" stroke="#FFF8F0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z" fill="#FFF8F0" stroke="#D4470C" stroke-width="1.6" stroke-linejoin="round"/></svg><span>antm</span></a><nav class="dx-nav" aria-label="Dashboard"><a data-nav="Demos" class="on">Demos</a><a data-nav="Usage" class="">Usage</a><a data-nav="Setup" class="">Setup</a></nav><div class="dx-acct"><span class="avatar" aria-hidden="true">SS</span><span class="small mono dx-login">sanath1599</span><button class="theme-btn" type="button" aria-label="Colour mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="btn ghost sm" type="button">Sign out</button></div></header>
+  <main class="dx-main">
+    <section class="dl" aria-labelledby="dl-h">
+      <h2 id="dl-h" class="dx-h2">Your demos</h2>
+      <ul class="dl-list">
+        <li class="dl-row running r1">
+          <div class="dl-main">
+            <div class="dl-title"><strong>How antm works</strong><span class="dl-pill run"><i class="dl-pulse"></i>Building</span></div>
+            <p class="dl-meta"><span>sanath1599/animated-interactive, main</span><span>just now</span><span data-k="so-far">6 min so far</span><span>Claude</span><span>≈ 182k tokens</span></p>
+            <p class="dl-phase" data-k="phase">Rebuilding the screens</p>
+          </div>
+          <div class="dl-actions"></div>
+        </li>
+        <li class="dl-row completed r2">
+          <div class="dl-main">
+            <div class="dl-title"><strong>UltraMem walkthrough</strong><span class="dl-pill ok">Ready</span></div>
+            <p class="dl-meta"><span>sanath1599/UltraMem, main</span><span>2d ago</span><span>took 31 min</span><span>81 views checked, all clean</span><span>Claude</span><span>≈ 1.2M tokens</span></p>
+          </div>
+          <div class="dl-actions">
+            <button class="btn sm prev" type="button">Preview</button>
+            <a class="btn sm dl-get">Download</a>
+            <details class="dl-more">
+              <summary class="btn sm ghost" aria-label="More actions"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></summary>
+              <div class="dl-menu" role="menu">
+                <button role="menuitem" type="button" data-report="Verification report">Verification report</button>
+                <button role="menuitem" type="button" data-report="Evidence report">Evidence report</button>
+                <a role="menuitem" data-t="Opens a new chat with the same request.">Rebuild in a new chat</a>
+                <button role="menuitem" type="button" class="danger" data-t="Deletes the deck and its reports.">Delete demo</button>
+              </div>
+            </details>
+          </div>
+          <div class="dl-preview" hidden>
+            <div class="pv"><p class="pv-eb">UltraMem</p><p class="pv-h">Meetings in, memory out</p><p class="pv-p">Presented by Sanath Swaroop</p><span class="pv-btn">Start</span></div>
+          </div>
+        </li>
+        <li class="dl-row completed r3">
+          <div class="dl-main">
+            <div class="dl-title"><strong>Good Returns for reviewers</strong><span class="dl-pill ok">Ready</span></div>
+            <p class="dl-meta"><span>sanath1599/Good-Returns, main</span><span>5d ago</span><span>took 38 min</span><span>68 views checked, all clean</span><span>ChatGPT</span><span>≈ 940k tokens</span></p>
+          </div>
+          <div class="dl-actions"><button class="btn sm" type="button" data-t="Shows the deck here, sandboxed.">Preview</button><a class="btn sm" data-t="Downloads the single HTML file.">Download</a><span class="btn sm ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></span></div>
+        </li>
+        <li class="dl-row interrupted r4">
+          <div class="dl-main">
+            <div class="dl-title"><strong>c0py.me overview</strong><span class="dl-pill bad">Interrupted</span></div>
+            <p class="dl-meta"><span>sanath1599/c0py.me, main</span><span>6d ago</span><span>Claude</span><span>≈ 64k tokens</span></p>
+          </div>
+          <div class="dl-actions"></div>
+        </li>
+      </ul>
+      <p class="small muted dl-foot">Token estimates and trends are on the <a class="lnk" data-t="The Usage tab.">usage page</a>.</p>
+    </section>
+  </main>
+  <div class="rv-back" hidden></div>
+  <div class="rv" role="dialog" aria-label="Verification report" hidden>
+    <header class="rv-head">
+      <div><h2 data-k="rv-title">Verification report</h2><p class="small muted">UltraMem walkthrough</p></div>
+      <div class="row"><a class="btn sm" data-t="Saves the report as Markdown.">Download .md</a><button class="btn sm ghost rv-close" type="button">Close</button></div>
+    </header>
+    <div class="rv-body">
+      <div class="md" data-md="Verification report">
+        <h2>Verification report</h2>
+        <p>Rendered in headless Chromium with the network blocked: every slide and step at 1280×720 in light mode, plus three phone-width views.</p>
+        <div class="md-table"><table>
+          <thead><tr><th>Check</th><th>Result</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Every slide and step renders</td><td><span class="chip ok">passed</span></td><td>78 desktop views</td></tr>
+            <tr><td>Phone-width views</td><td><span class="chip ok">passed</span></td><td>3 views at 390×844</td></tr>
+            <tr><td>No network requests</td><td><span class="chip ok">passed</span></td><td>0 blocked requests</td></tr>
+            <tr><td>No console or page errors</td><td><span class="chip ok">passed</span></td><td></td></tr>
+            <tr><td>Fullscreen and touch</td><td><span class="chip">not run</span></td><td>Need a real window</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Screens</h3>
+        <ul><li><strong>Dashboard</strong>: 5 steps, compared against <code>src/pages/Dashboard.tsx</code></li><li><strong>Meeting detail</strong>: 4 steps, every tab checked</li></ul>
+      </div>
+      <div class="md" data-md="Evidence report" hidden>
+        <h2>Evidence and caveats</h2>
+        <p>Where each screen and figure in the deck came from, and what could not be checked.</p>
+        <div class="md-table"><table>
+          <thead><tr><th>Item</th><th>Source</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Dashboard layout, sidebar and theme</td><td><code>src/pages/Dashboard.tsx</code>, <code>src/index.css</code></td><td><span class="chip ok">verified</span></td></tr>
+            <tr><td>Meeting tabs and labels</td><td><code>src/pages/MeetingDetail.tsx</code></td><td><span class="chip ok">verified</span></td></tr>
+            <tr><td>Meetings, people and tasks</td><td>sample data</td><td><span class="chip">illustrative</span></td></tr>
+          </tbody>
+        </table></div>
+        <h3>Caveats</h3>
+        <ul><li>Audio upload and transcription need a live backend, so they are shown with sample results.</li><li>Fonts loaded from the network were replaced by local fallbacks.</li></ul>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+<template id="tpl-usage"><div class="dx">
+  <div class="dx-glow"></div>
+  <header class="dx-top"><a class="dx-brand"><svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none"><defs><linearGradient id="gt4" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#FDA635"/><stop offset=".55" stop-color="#F26A1B"/><stop offset="1" stop-color="#D4470C"/></linearGradient><linearGradient id="st4" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><rect width="64" height="64" rx="18" fill="url(#gt4)"/><rect width="64" height="64" rx="18" fill="url(#st4)"/><path d="M26 19 13 32l13 13" stroke="#FFF8F0" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z" fill="#FFF8F0" stroke="#D4470C" stroke-width="1.6" stroke-linejoin="round"/></svg><span>antm</span></a><nav class="dx-nav" aria-label="Dashboard"><a data-nav="Demos" class="">Demos</a><a data-nav="Usage" class="on">Usage</a><a data-nav="Setup" class="">Setup</a></nav><div class="dx-acct"><span class="avatar" aria-hidden="true">SS</span><span class="small mono dx-login">sanath1599</span><button class="theme-btn" type="button" aria-label="Colour mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="btn ghost sm" type="button">Sign out</button></div></header>
+  <main class="dx-main">
+    <section class="dx-hero dx-hero-row">
+      <div>
+        <h1 data-k="h1">Your builds, last 30 days</h1>
+        <p class="dx-lede">Token counts are estimates from what was sent and received. Claude and ChatGPT show your actual plan usage.</p>
+      </div>
+      <div class="row ranges">
+        <div class="db-seg" role="group" aria-label="Whose usage"><button type="button" class="on" data-scope="me">Me</button><button type="button" data-scope="all">All users</button></div>
+        <div class="db-seg days" role="group" aria-label="Date range"><button type="button" data-d="7">7d</button><button type="button" class="on" data-d="30">30d</button><button type="button" data-d="90">90d</button></div>
+      </div>
+    </section>
+    <div class="db-tiles">
+      <div class="db-tile"><span class="small muted">Demos built</span><strong class="db-tile-v" data-v="built">9</strong><span class="small muted" data-v="built-sub">12 started · 1 running</span></div>
+      <div class="db-tile"><span class="small muted">Success rate</span><strong class="db-tile-v" data-v="rate">82%</strong><span class="small muted" data-v="rate-sub">2 failed or interrupted</span></div>
+      <div class="db-tile"><span class="small muted">Assistant steps</span><strong class="db-tile-v" data-v="steps">214</strong><span class="small muted">none failed</span></div>
+      <div class="db-tile"><span class="small muted">Est. tokens</span><strong class="db-tile-v" data-v="tok">≈ 6.4M</strong><span class="small muted" data-v="tok-sub">5.1M in · 1.3M out</span></div>
+      <div class="db-tile"><span class="small muted">Assistant time</span><strong class="db-tile-v" data-v="time">5h 12m</strong><span class="small muted">34 min per finished build</span></div>
+    </div>
+    <section class="dx-panel-open chart">
+      <figure class="db-chart">
+        <figcaption class="small muted">Estimated assistant tokens per day (input + output)</figcaption>
+        <div class="db-chart-wrap"><svg viewBox="0 0 720 180" role="img" aria-label="Estimated assistant tokens per day"><line x1="44" x2="720" y1="158" y2="158" class="db-grid"/><text x="38" y="162" text-anchor="end" class="db-axis">0</text><line x1="44" x2="720" y1="83" y2="83" class="db-grid"/><text x="38" y="87" text-anchor="end" class="db-axis">1.0M</text><line x1="44" x2="720" y1="8" y2="8" class="db-grid"/><text x="38" y="12" text-anchor="end" class="db-axis">2.0M</text><rect class="db-hit" x="44.00" y="8" width="22.53" height="150" fill="transparent" data-i="0" data-day="Oct 1" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="7.7"/><text x="55.27" y="174" text-anchor="middle" class="db-axis">Oct 1</text><rect class="db-hit" x="66.53" y="8" width="22.53" height="150" fill="transparent" data-i="1" data-day="Oct 2" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="10.8"/><path d="M90.07,158V153Q90.07,149 94.07,149H106.6Q110.6,149 110.6,153V158Z" class="db-bar" data-i="2"/><rect class="db-hit" x="89.07" y="8" width="22.53" height="150" fill="transparent" data-i="2" data-day="Oct 3" data-tok="120k" data-raw="120000" data-calls="4" data-builds="1" data-pct="13.9"/><path d="M112.6,158V136.5Q112.6,132.5 116.6,132.5H129.13Q133.13,132.5 133.13,136.5V158Z" class="db-bar" data-i="3"/><rect class="db-hit" x="111.60" y="8" width="22.53" height="150" fill="transparent" data-i="3" data-day="Oct 4" data-tok="340k" data-raw="340000" data-calls="11" data-builds="1" data-pct="17.1"/><rect class="db-hit" x="134.13" y="8" width="22.53" height="150" fill="transparent" data-i="4" data-day="Oct 5" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="20.2"/><path d="M157.67,158V146.25Q157.67,142.25 161.67,142.25H174.2Q178.2,142.25 178.2,146.25V158Z" class="db-bar" data-i="5"/><rect class="db-hit" x="156.67" y="8" width="22.53" height="150" fill="transparent" data-i="5" data-day="Oct 6" data-tok="210k" data-raw="210000" data-calls="7" data-builds="1" data-pct="23.3"/><text x="167.93" y="174" text-anchor="middle" class="db-axis">Oct 6</text><rect class="db-hit" x="179.20" y="8" width="22.53" height="150" fill="transparent" data-i="6" data-day="Oct 7" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="26.5"/><rect class="db-hit" x="201.73" y="8" width="22.53" height="150" fill="transparent" data-i="7" data-day="Oct 8" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="29.6"/><path d="M225.27,158V126Q225.27,122 229.27,122H241.8Q245.8,122 245.8,126V158Z" class="db-bar" data-i="8"/><rect class="db-hit" x="224.27" y="8" width="22.53" height="150" fill="transparent" data-i="8" data-day="Oct 9" data-tok="480k" data-raw="480000" data-calls="16" data-builds="1" data-pct="32.7"/><path d="M247.8,158V105Q247.8,101 251.8,101H264.33000000000004Q268.33000000000004,101 268.33000000000004,105V158Z" class="db-bar" data-i="9"/><rect class="db-hit" x="246.80" y="8" width="22.53" height="150" fill="transparent" data-i="9" data-day="Oct 10" data-tok="760k" data-raw="760000" data-calls="25" data-builds="2" data-pct="35.8"/><path d="M270.33,158V145.5Q270.33,141.5 274.33,141.5H286.86Q290.86,141.5 290.86,145.5V158Z" class="db-bar" data-i="10"/><rect class="db-hit" x="269.33" y="8" width="22.53" height="150" fill="transparent" data-i="10" data-day="Oct 11" data-tok="220k" data-raw="220000" data-calls="7" data-builds="1" data-pct="39.0"/><text x="280.60" y="174" text-anchor="middle" class="db-axis">Oct 11</text><rect class="db-hit" x="291.87" y="8" width="22.53" height="150" fill="transparent" data-i="11" data-day="Oct 12" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="42.1"/><rect class="db-hit" x="314.40" y="8" width="22.53" height="150" fill="transparent" data-i="12" data-day="Oct 13" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="45.2"/><path d="M337.93,158V155.25Q337.93,151.25 341.93,151.25H354.46000000000004Q358.46000000000004,151.25 358.46000000000004,155.25V158Z" class="db-bar" data-i="13"/><rect class="db-hit" x="336.93" y="8" width="22.53" height="150" fill="transparent" data-i="13" data-day="Oct 14" data-tok="90k" data-raw="90000" data-calls="3" data-builds="1" data-pct="48.4"/><path d="M360.47,158V116.25Q360.47,112.25 364.47,112.25H377Q381,112.25 381,116.25V158Z" class="db-bar" data-i="14"/><rect class="db-hit" x="359.47" y="8" width="22.53" height="150" fill="transparent" data-i="14" data-day="Oct 15" data-tok="610k" data-raw="610000" data-calls="20" data-builds="2" data-pct="51.5"/><path d="M383,158V75.75Q383,71.75 387,71.75H399.53Q403.53,71.75 403.53,75.75V158Z" class="db-bar" data-i="15"/><rect class="db-hit" x="382.00" y="8" width="22.53" height="150" fill="transparent" data-i="15" data-day="Oct 16" data-tok="1.1M" data-raw="1150000" data-calls="38" data-builds="2" data-pct="54.6"/><text x="393.27" y="174" text-anchor="middle" class="db-axis">Oct 16</text><path d="M405.53,158V133.5Q405.53,129.5 409.53,129.5H422.05999999999995Q426.05999999999995,129.5 426.05999999999995,133.5V158Z" class="db-bar" data-i="16"/><rect class="db-hit" x="404.53" y="8" width="22.53" height="150" fill="transparent" data-i="16" data-day="Oct 17" data-tok="380k" data-raw="380000" data-calls="13" data-builds="1" data-pct="57.8"/><rect class="db-hit" x="427.07" y="8" width="22.53" height="150" fill="transparent" data-i="17" data-day="Oct 18" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="60.9"/><rect class="db-hit" x="449.60" y="8" width="22.53" height="150" fill="transparent" data-i="18" data-day="Oct 19" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="64.0"/><path d="M473.13,158V142.5Q473.13,138.5 477.13,138.5H489.65999999999997Q493.65999999999997,138.5 493.65999999999997,142.5V158Z" class="db-bar" data-i="19"/><rect class="db-hit" x="472.13" y="8" width="22.53" height="150" fill="transparent" data-i="19" data-day="Oct 20" data-tok="260k" data-raw="260000" data-calls="9" data-builds="1" data-pct="67.1"/><path d="M495.67,158V151.5Q495.67,147.5 499.67,147.5H512.2Q516.2,147.5 516.2,151.5V158Z" class="db-bar" data-i="20"/><rect class="db-hit" x="494.67" y="8" width="22.53" height="150" fill="transparent" data-i="20" data-day="Oct 21" data-tok="140k" data-raw="140000" data-calls="5" data-builds="1" data-pct="70.3"/><text x="505.93" y="174" text-anchor="middle" class="db-axis">Oct 21</text><rect class="db-hit" x="517.20" y="8" width="22.53" height="150" fill="transparent" data-i="21" data-day="Oct 22" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="73.4"/><path d="M540.73,158V123Q540.73,119 544.73,119H557.26Q561.26,119 561.26,123V158Z" class="db-bar" data-i="22"/><rect class="db-hit" x="539.73" y="8" width="22.53" height="150" fill="transparent" data-i="22" data-day="Oct 23" data-tok="520k" data-raw="520000" data-calls="17" data-builds="1" data-pct="76.5"/><path d="M563.27,158V95.25Q563.27,91.25 567.27,91.25H579.8Q583.8,91.25 583.8,95.25V158Z" class="db-bar" data-i="23"/><rect class="db-hit" x="562.27" y="8" width="22.53" height="150" fill="transparent" data-i="23" data-day="Oct 24" data-tok="890k" data-raw="890000" data-calls="30" data-builds="2" data-pct="79.7"/><path d="M585.8,158V139.5Q585.8,135.5 589.8,135.5H602.3299999999999Q606.3299999999999,135.5 606.3299999999999,139.5V158Z" class="db-bar" data-i="24"/><rect class="db-hit" x="584.80" y="8" width="22.53" height="150" fill="transparent" data-i="24" data-day="Oct 25" data-tok="300k" data-raw="300000" data-calls="10" data-builds="1" data-pct="82.8"/><rect class="db-hit" x="607.33" y="8" width="22.53" height="150" fill="transparent" data-i="25" data-day="Oct 26" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="85.9"/><text x="618.60" y="174" text-anchor="middle" class="db-axis">Oct 26</text><rect class="db-hit" x="629.87" y="8" width="22.53" height="150" fill="transparent" data-i="26" data-day="Oct 27" data-tok="0" data-raw="0" data-calls="0" data-builds="0" data-pct="89.0"/><path d="M653.4,158V149.25Q653.4,145.25 657.4,145.25H669.93Q673.93,145.25 673.93,149.25V158Z" class="db-bar" data-i="27"/><rect class="db-hit" x="652.40" y="8" width="22.53" height="150" fill="transparent" data-i="27" data-day="Oct 28" data-tok="170k" data-raw="170000" data-calls="6" data-builds="1" data-pct="92.2"/><path d="M675.93,158V114Q675.93,110 679.93,110H692.4599999999999Q696.4599999999999,110 696.4599999999999,114V158Z" class="db-bar" data-i="28"/><rect class="db-hit" x="674.93" y="8" width="22.53" height="150" fill="transparent" data-i="28" data-day="Oct 29" data-tok="640k" data-raw="640000" data-calls="21" data-builds="2" data-pct="95.3"/><path d="M698.47,158V130.5Q698.47,126.5 702.47,126.5H715Q719,126.5 719,130.5V158Z" class="db-bar" data-i="29"/><rect class="db-hit" x="697.47" y="8" width="22.53" height="150" fill="transparent" data-i="29" data-day="Oct 30" data-tok="420k" data-raw="420000" data-calls="14" data-builds="1" data-pct="98.4"/></svg><div class="db-tip" hidden><strong data-k="tip-day"></strong><span data-k="tip-tok"></span><span data-k="tip-calls"></span></div></div>
+      </figure>
+    </section>
+    <section class="dx-panel-open stages">
+      <h2 class="dx-h2">Where the tokens went</h2>
+      <table class="db-table">
+        <thead><tr><th>Step</th><th class="num">Calls</th><th class="num">≈ Tokens</th><th class="num">Time</th></tr></thead>
+        <tbody>
+          <tr><td>Chat · Rebuilding “Dashboard”</td><td class="num">38</td><td class="num">1.9M</td><td class="num">1h 24m</td></tr>
+          <tr><td>Chat · Rebuilding “Setup”</td><td class="num">27</td><td class="num">1.1M</td><td class="num">52 min</td></tr>
+          <tr><td>Chat · Fixing “Setup”</td><td class="num">19</td><td class="num">804k</td><td class="num">41 min</td></tr>
+          <tr><td>Chat · Transcribing the product's styles</td><td class="num">12</td><td class="num">688k</td><td class="num">33 min</td></tr>
+          <tr><td>Chat · Planning the deck</td><td class="num">12</td><td class="num">512k</td><td class="num">29 min</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+</template>
+<script type="application/json" id="dk-data">{"title":"How antm works","accent":"#F0620F","accentInk":"#fff","logo":"\u003csvg class=\"\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\" fill=\"none\">\u003cdefs>\u003clinearGradient id=\"gw\" x1=\"8\" y1=\"4\" x2=\"56\" y2=\"60\" gradientUnits=\"userSpaceOnUse\">\u003cstop stop-color=\"#FDA635\"/>\u003cstop offset=\".55\" stop-color=\"#F26A1B\"/>\u003cstop offset=\"1\" stop-color=\"#D4470C\"/>\u003c/linearGradient>\u003clinearGradient id=\"sw\" x1=\"32\" y1=\"0\" x2=\"32\" y2=\"64\" gradientUnits=\"userSpaceOnUse\">\u003cstop stop-color=\"#fff\" stop-opacity=\".35\"/>\u003cstop offset=\".5\" stop-color=\"#fff\" stop-opacity=\"0\"/>\u003c/linearGradient>\u003c/defs>\u003crect width=\"64\" height=\"64\" rx=\"18\" fill=\"url(#gw)\"/>\u003crect width=\"64\" height=\"64\" rx=\"18\" fill=\"url(#sw)\"/>\u003cpath d=\"M26 19 13 32l13 13\" stroke=\"#FFF8F0\" stroke-width=\"5.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\u003cpath d=\"M33 17.5v28.2l7.1-6.5 4.6 10.4 5.2-2.3-4.5-10.2 9.6-.5L33 17.5Z\" fill=\"#FFF8F0\" stroke=\"#D4470C\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/>\u003c/svg>","dataNote":"Sample data: illustrative","byline":"Presented by Sanath Swaroop · antm · October 30, 2026","theme":"light","playScreens":[{"id":"landing","label":"Landing"},{"id":"setup","label":"Setup"},{"id":"new-demo","label":"New demo"},{"id":"chat","label":"In the chat"},{"id":"demos","label":"Your demos"},{"id":"usage","label":"Usage"}],"slides":[{"id":"welcome","kind":"welcome","eyebrow":"antm","title":"How antm works","caption":"Pick a repository; Claude or ChatGPT rebuilds its real screens as a click-through demo, and antm checks every slide in a browser.","steps":[]},{"id":"landing","kind":"overview","eyebrow":"Start","title":"The landing page","caption":"The public page at app.antm.ai: what antm does, who it works with, and live samples.","steps":[{"title":"The promise","caption":"The landing page says what antm does in one line: your code, as a demo people can click.","spotlight":".hero h1"},{"title":"Claude or ChatGPT","caption":"antm works inside the assistant you already use, Claude or ChatGPT, through one connector.","spotlight":".ai-badges"},{"title":"Start here","caption":"Build a demo opens the dashboard; Watch one being built scrolls to an animated build.","spotlight":".hero-cta"},{"title":"Real samples, live","caption":"The hero shows finished sample decks built from real repositories; the tabs switch between them.","spotlight":".hs"},{"title":"Read-only by design","caption":"Repositories are only read, nothing is pushed, and five kinds of code source work.","spotlight":".hero-facts"}]},{"id":"setup","kind":"area","eyebrow":"Setup","title":"Set up once, in three steps","caption":"GitHub access, the Claude or ChatGPT connector, and other code hosts.","steps":[{"title":"Sign in with GitHub","caption":"Sign-in uses the antm GitHub App, which can only read the repositories you choose.","spotlight":".s1"},{"title":"Add to Claude","caption":"One click opens claude.ai's Add custom connector dialog with the name and URL filled in.","spotlight":".s2 .add"},{"title":"Or add it to ChatGPT","caption":"In ChatGPT, antm is a custom MCP plugin added in Developer mode and signed in with OAuth.","spotlight":".s2 .dx-howto"},{"title":"No interruptions","caption":"Setting the connector's tools to Always allow lets a build run to the end without prompts.","spotlight":".s3"},{"title":"Other code hosts","caption":"Azure DevOps, GitLab and Bitbucket use a read-only token that never reaches the assistant.","spotlight":".dx-panel"}]},{"id":"new-demo","kind":"area","eyebrow":"Dashboard","title":"A new demo in four steps","caption":"One short form describes the demo; the cover preview on the right updates as you fill it in.","steps":[{"title":"Code","caption":"Pick a GitHub repository and branch, paste another host's URL, or upload a zip.","spotlight":".nd-repos"},{"title":"Presentation","caption":"Name the demo, choose how much it covers, and pick light or dark: the deck is built in that mode only.","spotlight":".nd-body[data-b=\"1\"]"},{"title":"Details","caption":"Audience, focus and notes are optional; the presenter and organization are remembered for next time.","spotlight":".byline"},{"title":"Review","caption":"Check the request, choose Claude or ChatGPT, and open a chat with the request already typed in.","spotlight":".nd-review"}]},{"id":"chat","kind":"area","eyebrow":"Build","title":"The assistant builds it in your chat","caption":"Claude or ChatGPT calls antm's connector tools; antm fetches code, renders slides and stores the result.","steps":[{"title":"The request arrives","caption":"The chat opens with a one-line request; start_demo returns the workspace and a step-by-step guide.","spotlight":".ch-call[data-at=\"0\"]"},{"title":"Reading the code","caption":"The assistant reads files, searches the code and looks at the repository's own images.","spotlight":".ch-call[data-at=\"1\"]"},{"title":"Plan and styles","caption":"It saves a plan sized to the product, then shared styles transcribed from the real CSS.","spotlight":".ch-call[data-at=\"2\"]"},{"title":"Every screen is checked","caption":"antm renders each saved screen in Chromium and sends problems and screenshots back until it's clean.","spotlight":".ch-call[data-at=\"3\"]"},{"title":"Finished","caption":"finish_demo checks the remaining views and writes the reports; the demo appears on the dashboard.","spotlight":".ch-msg.ai"}]},{"id":"demos","kind":"area","eyebrow":"Dashboard","title":"Follow the build, open the result","caption":"Every build is listed with its live stage, then a preview, the download and the reports.","steps":[{"title":"Live progress","caption":"A running build shows its stage, time so far and estimated tokens, refreshed every 10 seconds.","spotlight":".r1"},{"title":"Ready to share","caption":"Finished demos open in a sandboxed preview or download as one self-contained HTML file.","spotlight":".r2 .dl-actions"},{"title":"More actions","caption":"The menu holds the verification and evidence reports, a rebuild in a new chat, and delete.","spotlight":".dl-menu"},{"title":"Report viewer","caption":"Reports open formatted on the dashboard, with pass and fail chips, and still download as Markdown.","spotlight":".rv"}]},{"id":"usage","kind":"area","eyebrow":"Usage","title":"See what builds cost","caption":"Builds and estimated assistant usage over 7, 30 or 90 days.","steps":[{"title":"Pick a range","caption":"Usage covers 7, 30 or 90 days; admins can switch to everyone on the server.","spotlight":".ranges"},{"title":"At a glance","caption":"Builds, success rate, assistant steps, estimated tokens and time, from what each build reported.","spotlight":".db-tiles"},{"title":"Tokens per day","caption":"One bar per day; hovering shows that day's estimated tokens, steps and builds.","spotlight":".db-chart"},{"title":"Where the tokens went","caption":"Each build stage is listed with its calls, estimated tokens and time.","spotlight":".stages"}]},{"id":"play","kind":"play","eyebrow":"Your turn","title":"Your turn","caption":"Every screen in this deck works: switch screens above, then click around.","steps":[],"hint":"Try the tabs, the form's Continue, the ⋯ menu and the reports."},{"id":"close","kind":"close","eyebrow":"Summary","title":"From a repository to a demo people can click","caption":"","steps":[],"figures":[{"label":"connector tools","value":11,"source":"lib/studio/mcp.ts","verified":true},{"label":"form steps","value":4,"source":"components/dashboard/new-demo.tsx","verified":true},{"label":"MB deck limit","value":3,"source":"lib/studio/decks.ts","verified":true},{"label":"days of usage history","value":90,"source":"components/dashboard/usage.tsx","verified":true}],"points":[{"text":"Reads GitHub, Azure DevOps, GitLab, Bitbucket or a zip, read-only, with secret-like files removed.","source":"lib/studio/workspaces.ts"},{"text":"Claude or ChatGPT builds the deck on your own plan through one OAuth 2.1 connector.","source":"lib/studio/mcp.ts, lib/oauth/server.ts"},{"text":"Every slide and step is rendered in headless Chromium with the network blocked.","source":"docker/runner/verify-deck.mjs"},{"text":"One self-contained HTML file in the colour mode you chose, with verification and evidence reports.","source":"lib/studio/decks.ts, lib/studio/chat-build.ts"}]}]}</script>
+<script>window.__dkScripts={};
+window.__dkScripts["landing"]=function(root,api){"use strict";
+var S = [
+  { url: "ultramem.html · built from github.com/sanath1599/UltraMem", eb: "UltraMem", title: "Meetings in, memory out", tag: "An AI note taker: meeting audio in, summaries, tasks and reminders out, with a memory map of the people and topics.", n: 10, views: 81, acc: "#e8692c" },
+  { url: "c0py-me.html · built from github.com/sanath1599/c0py.me", eb: "c0py.me", title: "Share files straight between devices", tag: "Anonymous peer-to-peer file sharing. Files travel straight between devices, with no accounts and nothing stored on a server.", n: 8, views: 19, acc: "#a6521b" },
+  { url: "good-returns.html · built from github.com/sanath1599/Good-Returns", eb: "Good Returns", title: "Know which shoppers to trust", tag: "A returns and claims platform that scores every shopper, so reviewers can see who to trust at a glance.", n: 12, views: 68, acc: "#1f3a68" }
+];
+function q(k) { return root.querySelector('[data-k="' + k + '"]'); }
+function show(i) {
+  var s = S[i];
+  q("url").textContent = s.url; q("eb").textContent = s.eb; q("title").textContent = s.title; q("tag").textContent = s.tag;
+  q("mini").style.setProperty("--mini-acc", s.acc);
+  root.querySelector(".mini-c").textContent = "1 / " + s.n;
+  q("cap").textContent = "A real output, not a mock-up: click into it and use the arrow keys. " + s.views + " views were checked in a browser before it was saved.";
+  var tabs = root.querySelectorAll(".hs-tabs button");
+  for (var j = 0; j < tabs.length; j++) tabs[j].classList.toggle("on", j === i);
+}
+var tabs = root.querySelectorAll(".hs-tabs button");
+for (var t = 0; t < tabs.length; t++) (function (b) { b.addEventListener("click", function () { show(+b.dataset.s); }); })(tabs[t]);
+var acts = root.querySelectorAll("[data-act]");
+for (var a = 0; a < acts.length; a++) acts[a].addEventListener("click", function (e) {
+  api.toast(e.currentTarget.dataset.act === "watch" ? "Scrolls to the animated build further down the page." : "Opens the dashboard: setup first, then the New demo form.");
+});
+root.querySelector(".hs-full").addEventListener("click", function () { api.toast("Opens the sample on its own page."); });
+root.querySelector(".theme-btn").addEventListener("click", function () { api.toast("The site has light and dark modes; this demo shows light."); });
+var links = root.querySelectorAll(".ln-links a");
+for (var l = 0; l < links.length; l++) links[l].addEventListener("click", function (e) { api.toast("Jumps to " + e.currentTarget.textContent + "."); });
+show(0);
+
+};
+window.__dkScripts["setup"]=function(root,api){"use strict";
+function tab(name) {
+  var b = root.querySelectorAll("[data-tab]");
+  for (var i = 0; i < b.length; i++) b[i].classList.toggle("on", b[i].dataset.tab === name);
+  var p = root.querySelectorAll("[data-pane]");
+  for (var j = 0; j < p.length; j++) p[j].hidden = p[j].dataset.pane !== name;
+}
+var tabs = root.querySelectorAll("[data-tab]");
+for (var i = 0; i < tabs.length; i++) tabs[i].addEventListener("click", function (e) { tab(e.currentTarget.dataset.tab); });
+var adds = root.querySelectorAll(".add");
+for (var a = 0; a < adds.length; a++) adds[a].addEventListener("click", function (e) {
+  var w = e.currentTarget.parentNode.querySelector(".wait");
+  w.innerHTML = '<span class="dot-live"></span> ';
+  w.appendChild(document.createTextNode(e.currentTarget.dataset.wait));
+  api.toast("The assistant opens in a new tab; this page updates once you click Allow.");
+});
+var copies = root.querySelectorAll("[data-copy]");
+for (var c = 0; c < copies.length; c++) copies[c].addEventListener("click", function (e) { e.currentTarget.textContent = "Copied"; });
+var ts = root.querySelectorAll("[data-t]");
+for (var t = 0; t < ts.length; t++) ts[t].addEventListener("click", function (e) { api.toast(e.currentTarget.dataset.t); });
+var panel = root.querySelector(".dx-panel");
+api.onStep(function (n) {
+  if (api.mode === "play") n = 0;
+  tab(n === 2 ? "chatgpt" : "claude");
+  if (n >= 4) panel.setAttribute("open", ""); else panel.removeAttribute("open");
+});
+
+var navs = root.querySelectorAll("[data-nav]");
+for (var ni = 0; ni < navs.length; ni++) navs[ni].addEventListener("click", function (e) { api.toast(api.mode === "play" ? "Use the buttons above the screen to open " + e.currentTarget.dataset.nav + "." : "Opens the " + e.currentTarget.dataset.nav + " page."); });
+root.querySelector(".dx-acct .theme-btn").addEventListener("click", function () { api.toast("The dashboard has light and dark modes; this demo shows light."); });
+
+};
+window.__dkScripts["new-demo"]=function(root,api){"use strict";
+var step = 0, theme = "light";
+var NOTE = {
+  Claude: "A new claude.ai chat opens with your request typed in. Pick Opus or Sonnet there and press send; if it asks to use the connector, choose Always allow.",
+  ChatGPT: "A new ChatGPT chat opens with your request. Choose your most capable model, make sure the Animated Technical Interactive plugin is on, and approve its actions when asked."
+};
+var asst = "Claude";
+function q(s) { return root.querySelector(s); }
+function render(n) {
+  step = n;
+  var lis = root.querySelectorAll(".nd-steps li");
+  for (var i = 0; i < lis.length; i++) {
+    lis[i].className = i === n ? "on" : i < n ? "done" : "";
+    lis[i].querySelector(".nd-n").textContent = i < n ? "✓" : String(i + 1);
+  }
+  var bodies = root.querySelectorAll("[data-b]");
+  for (var j = 0; j < bodies.length; j++) bodies[j].hidden = +bodies[j].dataset.b !== n;
+  q(".back").hidden = n === 0;
+  var go = q(".go");
+  go.textContent = n < 3 ? "Continue" : "Open in " + asst;
+  go.classList.toggle("lg", n === 3);
+  // The cover fills in as the form does: the title from step 2, the byline from step 3.
+  var t = q('[data-k="title"]');
+  t.textContent = n >= 1 ? "How antm works" : "Your presentation title";
+  t.classList.toggle("ph", n < 1);
+  q('[data-k="by"]').hidden = n < 2;
+}
+function setTheme(v) {
+  theme = v;
+  var b = root.querySelectorAll("[data-theme-opt]");
+  for (var i = 0; i < b.length; i++) b[i].classList.toggle("on", b[i].dataset.themeOpt === v);
+  var s = q(".nd-slide"); s.classList.toggle("light", v === "light"); s.classList.toggle("dark", v === "dark");
+  q('[data-k="mode"]').textContent = v === "dark" ? "Dark" : "Light";
+}
+var opts = root.querySelectorAll("[data-theme-opt]");
+for (var o = 0; o < opts.length; o++) opts[o].addEventListener("click", function (e) { setTheme(e.currentTarget.dataset.themeOpt); });
+var as = root.querySelectorAll("[data-a]");
+for (var a = 0; a < as.length; a++) as[a].addEventListener("click", function (e) {
+  asst = e.currentTarget.dataset.a;
+  for (var k = 0; k < as.length; k++) as[k].classList.toggle("on", as[k] === e.currentTarget);
+  q('[data-k="asst-note"]').textContent = NOTE[asst];
+  render(step);
+});
+q(".back").addEventListener("click", function () { if (step > 0) render(step - 1); });
+q(".go").addEventListener("click", function () {
+  if (step < 3) render(step + 1);
+  else api.toast("Fetching the code and opening " + asst + " with a one-line request…");
+});
+var tabs = root.querySelectorAll(".nd-steps button");
+for (var b = 0; b < tabs.length; b++) (function (i) { tabs[i].addEventListener("click", function () { render(i); }); })(b);
+var edits = root.querySelectorAll("[data-go]");
+for (var e = 0; e < edits.length; e++) edits[e].addEventListener("click", function (ev) { render(+ev.currentTarget.dataset.go); });
+var choices = root.querySelectorAll(".nd-choice");
+for (var c = 0; c < choices.length; c++) choices[c].addEventListener("click", function (ev) {
+  for (var k = 0; k < choices.length; k++) choices[k].classList.toggle("on", choices[k] === ev.currentTarget);
+});
+var triggers = root.querySelectorAll(".ui-trigger");
+for (var tr = 0; tr < triggers.length; tr++) triggers[tr].addEventListener("click", function () { api.toast("A searchable list opens here."); });
+var repos = root.querySelectorAll(".nd-repos button");
+for (var r = 0; r < repos.length; r++) repos[r].addEventListener("click", function (ev) {
+  for (var k = 0; k < repos.length; k++) repos[k].classList.toggle("on", repos[k] === ev.currentTarget);
+});
+api.onStep(function (n) { render(api.mode === "play" ? 0 : Math.min(n, 3)); });
+
+var navs = root.querySelectorAll("[data-nav]");
+for (var ni = 0; ni < navs.length; ni++) navs[ni].addEventListener("click", function (e) { api.toast(api.mode === "play" ? "Use the buttons above the screen to open " + e.currentTarget.dataset.nav + "." : "Opens the " + e.currentTarget.dataset.nav + " page."); });
+root.querySelector(".dx-acct .theme-btn").addEventListener("click", function () { api.toast("The dashboard has light and dark modes; this demo shows light."); });
+
+};
+window.__dkScripts["chat"]=function(root,api){"use strict";
+var items = root.querySelectorAll("[data-at]");
+var state = root.querySelector('[data-k="state"]');
+var log = root.querySelector(".ch-log");
+function show(n) {
+  var last = null;
+  for (var i = 0; i < items.length; i++) { var on = +items[i].dataset.at <= n; items[i].hidden = !on; if (on) last = items[i]; }
+  var done = n >= 4;
+  state.className = "chip " + (done ? "ok" : "warn");
+  state.innerHTML = done ? "ready" : '<span class="dot-live"></span>building';
+  log.scrollTop = log.scrollHeight;
+}
+api.onStep(show);
+root.querySelector(".ch-input").addEventListener("click", function () { api.toast("The build runs in your own chat; antm only answers the tool calls."); });
+
+};
+window.__dkScripts["demos"]=function(root,api){"use strict";
+var PHASES = ["Reading the code", "Planning the slides", "Copying the product's styles", "Rebuilding the screens", "Checking every slide in a browser", "Writing the reports"];
+var phase = root.querySelector('[data-k="phase"]');
+var more = root.querySelector(".dl-more");
+var rv = root.querySelector(".rv"), back = root.querySelector(".rv-back");
+function report(name) {
+  if (!name) { rv.hidden = true; back.hidden = true; return; }
+  root.querySelector('[data-k="rv-title"]').textContent = name;
+  var mds = root.querySelectorAll("[data-md]");
+  for (var m = 0; m < mds.length; m++) mds[m].hidden = mds[m].dataset.md !== name;
+  rv.setAttribute("aria-label", name);
+  more.removeAttribute("open");
+  rv.hidden = false; back.hidden = false;
+}
+var rs = root.querySelectorAll("[data-report]");
+for (var i = 0; i < rs.length; i++) rs[i].addEventListener("click", function (e) { report(e.currentTarget.dataset.report); });
+root.querySelector(".rv-close").addEventListener("click", function () { report(null); });
+back.addEventListener("click", function () { report(null); });
+var prev = root.querySelector(".prev"), pv = root.querySelector(".dl-preview");
+prev.addEventListener("click", function () { pv.hidden = !pv.hidden; prev.textContent = pv.hidden ? "Preview" : "Close preview"; });
+root.querySelector(".dl-get").addEventListener("click", function () { api.toast("Downloads ultramem-walkthrough.html, one self-contained file."); });
+var ts = root.querySelectorAll("[data-t]");
+for (var t = 0; t < ts.length; t++) ts[t].addEventListener("click", function (e) { api.toast(e.currentTarget.dataset.t); });
+// While a build runs the dashboard reloads every 10 s and the phase line moves on; here it advances when clicked.
+var p = 3;
+root.querySelector(".r1").addEventListener("click", function () { p = (p + 1) % PHASES.length; phase.textContent = PHASES[p]; });
+api.onStep(function (n) {
+  if (api.mode === "play") { more.removeAttribute("open"); report(null); return; }
+  p = 3; phase.textContent = PHASES[p];
+  if (n === 2) more.setAttribute("open", ""); else more.removeAttribute("open");
+  report(n === 3 ? "Verification report" : null);
+});
+
+var navs = root.querySelectorAll("[data-nav]");
+for (var ni = 0; ni < navs.length; ni++) navs[ni].addEventListener("click", function (e) { api.toast(api.mode === "play" ? "Use the buttons above the screen to open " + e.currentTarget.dataset.nav + "." : "Opens the " + e.currentTarget.dataset.nav + " page."); });
+root.querySelector(".dx-acct .theme-btn").addEventListener("click", function () { api.toast("The dashboard has light and dark modes; this demo shows light."); });
+
+};
+window.__dkScripts["usage"]=function(root,api){"use strict";
+// Illustrative totals per range (the real page reloads /api/dashboard?days=…).
+var R = {
+  7: { built: "3", bs: "4 started · 1 running", rate: "100%", rs: "0 failed or interrupted", steps: "71", tok: "≈ 2.1M", ts: "1.7M in · 410k out", time: "1h 48m" },
+  30: { built: "9", bs: "12 started · 1 running", rate: "82%", rs: "2 failed or interrupted", steps: "214", tok: "≈ 6.4M", ts: "5.1M in · 1.3M out", time: "5h 12m" },
+  90: { built: "21", bs: "27 started · 1 running", rate: "84%", rs: "4 failed or interrupted", steps: "498", tok: "≈ 15.2M", ts: "12.1M in · 3.1M out", time: "12h 40m" }
+};
+var days = 30, scope = "me";
+function v(k) { return root.querySelector('[data-v="' + k + '"]'); }
+function paint() {
+  var r = R[days];
+  root.querySelector('[data-k="h1"]').textContent = (scope === "all" ? "Everyone, last " : "Your builds, last ") + days + " days";
+  v("built").textContent = r.built; v("built-sub").textContent = r.bs; v("rate").textContent = r.rate; v("rate-sub").textContent = r.rs;
+  v("steps").textContent = r.steps; v("tok").textContent = r.tok; v("tok-sub").textContent = r.ts; v("time").textContent = r.time;
+  var b = root.querySelectorAll("[data-d]"); for (var i = 0; i < b.length; i++) b[i].classList.toggle("on", +b[i].dataset.d === days);
+  var s = root.querySelectorAll("[data-scope]"); for (var j = 0; j < s.length; j++) s[j].classList.toggle("on", s[j].dataset.scope === scope);
+}
+var db = root.querySelectorAll("[data-d]");
+for (var i = 0; i < db.length; i++) db[i].addEventListener("click", function (e) { days = +e.currentTarget.dataset.d; paint(); });
+var sb = root.querySelectorAll("[data-scope]");
+for (var j = 0; j < sb.length; j++) sb[j].addEventListener("click", function (e) { scope = e.currentTarget.dataset.scope; paint(); });
+var tip = root.querySelector(".db-tip"), bars = root.querySelectorAll(".db-hit");
+function hover(h) {
+  for (var k = 0; k < bars.length; k++) { var bar = root.querySelector('.db-bar[data-i="' + k + '"]'); if (bar) bar.classList.toggle("on", h && +h.dataset.i === k); }
+  if (!h) { tip.hidden = true; return; }
+  root.querySelector('[data-k="tip-day"]').textContent = h.dataset.day;
+  root.querySelector('[data-k="tip-tok"]').textContent = "≈ " + h.dataset.tok + " tokens";
+  root.querySelector('[data-k="tip-calls"]').textContent = h.dataset.calls + " assistant steps · " + h.dataset.builds + " build" + (h.dataset.builds === "1" ? "" : "s");
+  var pct = +h.dataset.pct;
+  tip.style.left = pct + "%"; tip.style.transform = "translateX(" + (pct > 80 ? "-100%" : pct < 20 ? "0%" : "-50%") + ")";
+  tip.hidden = false;
+}
+for (var k = 0; k < bars.length; k++) bars[k].addEventListener("mouseenter", function (e) { hover(e.currentTarget); });
+root.querySelector(".db-chart-wrap").addEventListener("mouseleave", function () { hover(null); });
+api.onStep(function (n) {
+  days = 30; scope = "me"; paint();
+  // On the chart step, show the tooltip for the busiest day, as hovering would.
+  var best = null; for (var k = 0; k < bars.length; k++) if (!best || +bars[k].dataset.raw > +best.dataset.raw) best = bars[k];
+  hover(n === 2 && api.mode !== "play" ? best : null);
+});
+
+var navs = root.querySelectorAll("[data-nav]");
+for (var ni = 0; ni < navs.length; ni++) navs[ni].addEventListener("click", function (e) { api.toast(api.mode === "play" ? "Use the buttons above the screen to open " + e.currentTarget.dataset.nav + "." : "Opens the " + e.currentTarget.dataset.nav + " page."); });
+root.querySelector(".dx-acct .theme-btn").addEventListener("click", function () { api.toast("The dashboard has light and dark modes; this demo shows light."); });
+
+};
+</script>
+<script>
+/* Deck runtime embedded in every generated presentation. Reads #dk-data, mounts each product screen from
+   <template id="tpl-ID"> into a scaled 1280px canvas, and drives slides, steps, the spotlight tour, deep links
+   (#slide.step&v=slug), keyboard/touch/fullscreen, count-ups and the verification hook window.__deck.
+   The colour mode is fixed when the deck is built (D.theme); there is no theme switch. */
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("dk-data").textContent);
+  var REG = window.__dkScripts || {};
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var stage = document.getElementById("dk-stage");
+  var slides = D.slides;
+  var cur = { s: 0, n: 0 };
+  var built = {};
+  var playScreen = null;
+
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function txt(tag, cls, t) { var e = el(tag, cls); e.textContent = t == null ? "" : String(t); return e; }
+  function stepsOf(sl) { return sl.steps && sl.steps.length ? sl.steps.length : 1; }
+  function slug(sl) { return sl.id; }
+  if (D.accent) document.documentElement.style.setProperty("--dk-accent", D.accent);
+  if (D.accentInk) document.documentElement.style.setProperty("--dk-accent-ink", D.accentInk);
+  if (D.theme === "dark") document.documentElement.dataset.theme = "dark";
+
+  /* ---------- product screen mounting ---------- */
+  function mountScreen(frame, id, mode) {
+    var tpl = document.getElementById("tpl-" + id);
+    var canvas = el("div", "pf-canvas");
+    var root = el("div", "pf sl-" + id);
+    root.dataset.screen = id; root.dataset.mode = mode; root.dataset.step = "0";
+    if (tpl) root.appendChild(tpl.content.cloneNode(true));
+    canvas.appendChild(root); frame.appendChild(canvas);
+    var listeners = [];
+    var api = {
+      mode: mode, root: root, step: 0,
+      onStep: function (fn) { listeners.push(fn); try { fn(api.step); } catch (e) { console.error("[" + id + "] " + e.message); } },
+      toast: toast,
+      setStep: function (i) {
+        api.step = i; root.dataset.step = String(i);
+        for (var k = 0; k < listeners.length; k++) { try { listeners[k](i); } catch (e) { console.error("[" + id + "] " + e.message); } }
+      }
+    };
+    function fit() {
+      var w = frame.clientWidth, h = frame.clientHeight; if (!w || !h) return;
+      var sc = w / 1280; canvas.style.transform = "scale(" + sc + ")"; canvas.style.height = (h / sc) + "px";
+    }
+    fit(); api.fit = fit;
+    if (REG[id]) { try { REG[id](root, api); } catch (e) { console.error("[" + id + "] " + e.message); } }
+    return { root: root, canvas: canvas, api: api, fit: fit };
+  }
+
+  /** Shrinks a clamped block's font until its text fits (down to `min` px). */
+  function fitText(e, max, min) {
+    e.style.fontSize = max + "px";
+    for (var f = max; f > min && e.scrollHeight > e.clientHeight + 1; f -= 0.5) e.style.fontSize = (f - 0.5) + "px";
+  }
+
+  /* ---------- spotlight ---------- */
+  function clearSpot(frame) { var o = frame.querySelectorAll(".dk-spot,.dk-bubble"); for (var i = 0; i < o.length; i++) o[i].remove(); }
+  function spot(scr, frame, sel, step, idx, total, onNext, onBack) {
+    clearSpot(frame);
+    var t = null;
+    if (sel) { try { t = scr.root.querySelector(sel); } catch { console.error("Invalid spotlight selector: " + sel); } }
+    if (sel && !t) console.error("Spotlight target not found: " + sel);
+    var x = 24, y = 24, w = 0, h = 0;
+    if (t) {
+      // "instant" overrides any scroll-behavior:smooth in the product CSS, so the target is measured where it ends up.
+      try { t.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }); } catch { t.scrollIntoView(false); }
+      var fr = frame.getBoundingClientRect(), r = t.getBoundingClientRect(), k = stage.getBoundingClientRect().width / 1280 || 1;
+      x = (r.left - fr.left) / k; y = (r.top - fr.top) / k; w = r.width / k; h = r.height / k;
+      var s = el("div", "dk-spot"), pad = 6;
+      s.style.left = (x - pad) + "px"; s.style.top = (y - pad) + "px"; s.style.width = (w + pad * 2) + "px"; s.style.height = (h + pad * 2) + "px";
+      frame.appendChild(s);
+    }
+    var b = el("div", "dk-bubble");
+    b.appendChild(txt("h4", "", step.title)); b.appendChild(txt("p", "", step.caption));
+    var row = el("div", "dk-row");
+    row.appendChild(txt("span", "dk-count", (idx + 1) + " / " + total));
+    var nav = el("span");
+    var bk = txt("button", "dk-btn", "Back"); bk.disabled = idx === 0; bk.onclick = onBack;
+    var nx = txt("button", "dk-btn primary", idx === total - 1 ? "Done" : "Next"); nx.onclick = onNext; nx.setAttribute("data-tour-next", "");
+    nav.appendChild(bk); nav.appendChild(document.createTextNode(" ")); nav.appendChild(nx); row.appendChild(nav); b.appendChild(row);
+    frame.appendChild(b);
+    var fw = frame.clientWidth, fh = frame.clientHeight, bw = b.offsetWidth || 330, bh = b.offsetHeight || 150, g = 16, m = 12;
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(v, Math.max(lo, hi))); }
+    function overlap(px, py) { var ox = Math.max(0, Math.min(px + bw, x + w + 6) - Math.max(px, x - 6)), oy = Math.max(0, Math.min(py + bh, y + h + 6) - Math.max(py, y - 6)); return ox * oy; }
+    // Try right, left, below, above the target, then the frame's corners; take the first that leaves the target uncovered,
+    // else the one covering least of it.
+    var cands = !t ? [[m, m]] : [
+      [x + w + g, clamp(y, m, fh - bh - m)], [x - bw - g, clamp(y, m, fh - bh - m)],
+      [clamp(x, m, fw - bw - m), y + h + g], [clamp(x, m, fw - bw - m), y - bh - g],
+      [fw - bw - m, m], [m, m], [fw - bw - m, fh - bh - m], [m, fh - bh - m]
+    ];
+    var best = null;
+    for (var ci = 0; ci < cands.length; ci++) {
+      var cx = cands[ci][0], cy = cands[ci][1];
+      if (cx < m || cy < m || cx + bw > fw - m + 1 || cy + bh > fh - m + 1) continue;
+      var ov = overlap(cx, cy);
+      if (!best || ov < best.ov) best = { x: cx, y: cy, ov: ov };
+      if (ov === 0) break;
+    }
+    if (!best) best = { x: m, y: m };
+    var bx = best.x, by = best.y;
+    b.style.left = bx + "px"; b.style.top = by + "px";
+  }
+
+  /* ---------- slide builders ---------- */
+  function header(sl, node) {
+    var h = el("div", "dk-head"), left = el("div");
+    if (sl.eyebrow) left.appendChild(txt("p", "dk-eyebrow", sl.eyebrow));
+    left.appendChild(txt("h2", "dk-title", sl.title));
+    var cap = txt("p", "dk-caption", sl.caption || ""); cap.dataset.role = "caption"; left.appendChild(cap);
+    h.appendChild(left);
+    if (D.dataNote && sl.kind !== "welcome") h.appendChild(txt("div", "dk-note", D.dataNote));
+    node.appendChild(h); return cap;
+  }
+
+  function buildWelcome(sl, node) {
+    var c = el("div", "dk-cover");
+    if (D.logo) { var lg = el("div", "dk-logo", D.logo); c.appendChild(lg); }
+    if (sl.eyebrow) c.appendChild(txt("p", "dk-eyebrow", sl.eyebrow));
+    c.appendChild(txt("h1", "", sl.title));
+    c.appendChild(txt("p", "", sl.caption));
+    if (D.byline) c.appendChild(txt("p", "dk-byline", D.byline));
+    var go = txt("button", "dk-btn primary", "Start"); go.id = "dk-start"; go.onclick = function () { goTo(cur.s + 1, 0); };
+    c.appendChild(go); node.appendChild(c); return {};
+  }
+
+  function buildClose(sl, node) {
+    var c = el("div", "dk-cover"); c.style.gap = "16px";
+    if (sl.eyebrow) c.appendChild(txt("p", "dk-eyebrow", sl.eyebrow));
+    c.appendChild(txt("h1", "", sl.title));
+    if (sl.caption) c.appendChild(txt("p", "", sl.caption));
+    if (sl.figures && sl.figures.length) {
+      var f = el("div", "dk-figs");
+      sl.figures.forEach(function (x) {
+        var t = el("div", "dk-fig"), b = txt("b", "", x.value);
+        if (/^\d+(\.\d+)?$/.test(String(x.value))) { b.dataset.count = String(x.value); b.textContent = reduce ? String(x.value) : "0"; }
+        t.appendChild(b); t.appendChild(txt("span", "", x.label)); if (x.source) t.appendChild(txt("small", "", x.source)); f.appendChild(t);
+      });
+      c.appendChild(f);
+    }
+    if (sl.points && sl.points.length) {
+      var ul = el("ul", "dk-points");
+      sl.points.forEach(function (p) { var li = txt("li", "", p.text); if (p.source) li.appendChild(txt("small", "", p.source)); ul.appendChild(li); });
+      c.appendChild(ul);
+    }
+    node.appendChild(c); return {};
+  }
+
+  function buildScreen(sl, node) {
+    var cap = header(sl, node);
+    var body = el("div", "dk-body"); node.appendChild(body);
+    var tour = sl.kind === "overview";
+    var frame = el("div", "dk-frame " + (tour ? "full" : "with-steps")); body.appendChild(frame);
+    var list = null;
+    if (!tour) {
+      list = el("div", "dk-steps"); list.appendChild(txt("h3", "", "Steps"));
+      (sl.steps || []).forEach(function (st, i) {
+        var b = el("button", "dk-step"); b.type = "button";
+        b.appendChild(txt("b", "", i + 1)); b.appendChild(txt("span", "", st.title));
+        b.onclick = function () { goTo(slides.indexOf(sl), i); };
+        list.appendChild(b);
+      });
+      body.appendChild(list);
+    }
+    var scr = mountScreen(frame, sl.id, "present");
+    return {
+      fit: scr.fit,
+      apply: function (n) {
+        scr.fit(); scr.api.setStep(n);
+        var st = (sl.steps || [])[n] || {};
+        var bubble = tour || !!st.spotlight;
+        // With a bubble the step text lives in the bubble; the header keeps the slide's own caption.
+        cap.textContent = (bubble ? sl.caption : st.caption) || sl.caption || st.caption || "";
+        fitText(cap, 14.5, 12);
+        if (list) { var bs = list.querySelectorAll(".dk-step"); for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", i === n); }
+        var total = stepsOf(sl);
+        if (bubble) spot(scr, frame, st.spotlight, st, n, total, function () { next(); }, function () { prev(); });
+        else clearSpot(frame);
+      }
+    };
+  }
+
+  function buildPlay(sl, node) {
+    header(sl, node);
+    var body = el("div", "dk-body"); node.appendChild(body);
+    var bar = el("div", "dk-play-bar"); body.appendChild(bar);
+    var frame = el("div", "dk-frame full play"); body.appendChild(frame);
+    var screens = D.playScreens || [];
+    function show(id) {
+      frame.innerHTML = ""; playScreen = mountScreen(frame, id, "play");
+      var src = slides.filter(function (x) { return x.id === id; })[0];
+      if (src && src.steps && src.steps.length) playScreen.api.setStep(src.steps.length - 1);
+      var cs = bar.querySelectorAll(".dk-chip"); for (var i = 0; i < cs.length; i++) cs[i].classList.toggle("on", cs[i].dataset.id === id);
+    }
+    screens.forEach(function (s) { var c = txt("button", "dk-chip", s.label); c.type = "button"; c.dataset.id = s.id; c.onclick = function () { show(s.id); }; bar.appendChild(c); });
+    var hint = txt("span", "dk-hint", sl.hint || "Everything here works offline with sample data."); hint.title = hint.textContent; bar.appendChild(hint);
+    var first = false;
+    return { fit: function () { if (playScreen) playScreen.fit(); }, apply: function () { if (!first && screens[0]) { first = true; show(screens[0].id); } else if (playScreen) playScreen.fit(); } };
+  }
+
+  function build(i) {
+    if (built[i]) return built[i];
+    var sl = slides[i], node = el("section", "dk-slide"); node.dataset.slide = String(i); node.setAttribute("aria-label", sl.title);
+    stage.insertBefore(node, document.getElementById("dk-bar"));
+    var b = sl.kind === "welcome" ? buildWelcome(sl, node) : sl.kind === "close" ? buildClose(sl, node) : sl.kind === "play" ? buildPlay(sl, node) : buildScreen(sl, node);
+    b.node = node; built[i] = b; return b;
+  }
+
+  /* ---------- navigation ---------- */
+  var total = slides.reduce(function (a, s) { return a + stepsOf(s); }, 0);
+  function flatIndex(s, n) { var k = 0; for (var i = 0; i < s; i++) k += stepsOf(slides[i]); return k + n; }
+  var bBack = document.getElementById("dk-back"), bNext = document.getElementById("dk-next"), prog = document.querySelector(".dk-progress i"), cnt = document.getElementById("dk-count");
+
+  function countUp(node) {
+    var els = node.querySelectorAll("[data-count]");
+    for (var i = 0; i < els.length; i++) (function (e) {
+      var to = parseFloat(e.dataset.count), dec = (e.dataset.count.split(".")[1] || "").length;
+      if (reduce) { e.textContent = e.dataset.count; return; }
+      var t0 = performance.now();
+      function tick(t) { var p = Math.min(1, (t - t0) / 1200); e.textContent = (to * (1 - Math.pow(1 - p, 3))).toFixed(dec); if (p < 1) requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+      setTimeout(function () { e.textContent = e.dataset.count; }, 1600); // finishes even when timers are throttled
+    })(els[i]);
+  }
+
+  function goTo(s, n, quiet) {
+    s = Math.max(0, Math.min(slides.length - 1, s)); n = Math.max(0, Math.min(stepsOf(slides[s]) - 1, n || 0));
+    var changed = s !== cur.s || !built[s];
+    cur = { s: s, n: n };
+    var b = build(s);
+    for (var k in built) built[k].node.classList.toggle("on", +k === s);
+    if (b.apply) b.apply(n);
+    if (changed) countUp(b.node);
+    var f = flatIndex(s, n);
+    bBack.disabled = f === 0; bNext.disabled = f === total - 1;
+    prog.style.width = ((f + 1) / total * 100) + "%";
+    cnt.textContent = (s + 1) + " / " + slides.length + (stepsOf(slides[s]) > 1 ? " · " + (n + 1) + "/" + stepsOf(slides[s]) : "");
+    if (!quiet) {
+      var h = "#" + (s + 1) + "." + (n + 1) + "&v=" + slug(slides[s]);
+      try { history.replaceState(null, "", h); } catch { /* sandboxed */ }
+    }
+  }
+  function next() { var sl = slides[cur.s]; if (cur.n < stepsOf(sl) - 1) goTo(cur.s, cur.n + 1); else if (cur.s < slides.length - 1) goTo(cur.s + 1, 0); }
+  function prev() { if (cur.n > 0) goTo(cur.s, cur.n - 1); else if (cur.s > 0) goTo(cur.s - 1, stepsOf(slides[cur.s - 1]) - 1); }
+  bNext.onclick = next; bBack.onclick = prev;
+
+  function toggleFs() {
+    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  }
+  document.getElementById("dk-fs").onclick = toggleFs;
+
+  var tEl = null, tTimer = null;
+  function toast(msg) { if (!tEl) { tEl = el("div", "dk-toast"); stage.appendChild(tEl); } tEl.textContent = msg; tEl.classList.add("on"); clearTimeout(tTimer); tTimer = setTimeout(function () { tEl.classList.remove("on"); }, 1800); }
+
+  function typing(e) { var t = e.target; return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); }
+  addEventListener("keydown", function (e) {
+    if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+    else if (e.key === "f" || e.key === "F") toggleFs();
+    else if (e.key === "Escape" && document.fullscreenElement) document.exitFullscreen().catch(function () {});
+  });
+  var tx = null, ty = null;
+  stage.addEventListener("touchstart", function (e) { if (e.target.closest && e.target.closest(".pf")) { tx = null; return; } tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    if (tx == null) return; var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) next(); else prev(); }
+  }, { passive: true });
+
+  function scale() {
+    var vw = innerWidth, vh = innerHeight, k = Math.min(vw / 1280, vh / 720);
+    stage.style.transform = "translate(-50%,-50%) scale(" + k + ")";
+    for (var i in built) if (built[i].fit) built[i].fit();
+  }
+  addEventListener("resize", scale);
+
+  function parseHash() {
+    var h = location.hash.replace(/^#/, ""), m = /^(\d+)(?:\.(\d+))?/.exec(h);
+    if (!m) return { s: 0, n: 0 };
+    return { s: (+m[1] || 1) - 1, n: (+m[2] || 1) - 1 };
+  }
+  addEventListener("hashchange", function () { var p = parseHash(); goTo(p.s, p.n, true); });
+
+  /* ---------- verification hook ---------- */
+  function describe(e) {
+    var p = []; var n = e;
+    for (var i = 0; n && n !== stage && i < 4; i++, n = n.parentElement) p.unshift(n.tagName.toLowerCase() + (n.className && typeof n.className === "string" ? "." + n.className.trim().split(/\s+/).slice(0, 2).join(".") : ""));
+    return p.join(" > ") + ' "' + (e.textContent || "").trim().slice(0, 40) + '"';
+  }
+  function check() {
+    var node = built[cur.s] && built[cur.s].node, out = { clipped: [], outside: [] };
+    if (!node) return out;
+    var sr = stage.getBoundingClientRect(), k = sr.width / 1280;
+    var chrome = node.querySelectorAll(".dk-title,.dk-caption,.dk-eyebrow,.dk-step,.dk-note,.dk-points li,.dk-fig,.dk-cover h1,.dk-cover p,.dk-bubble");
+    for (var i = 0; i < chrome.length; i++) {
+      var e = chrome[i], r = e.getBoundingClientRect();
+      if (!r.width) continue;
+      if (e.classList.contains("dk-caption")) { if (e.scrollHeight > e.clientHeight + 2) out.clipped.push(describe(e)); }
+      else if (e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflowX !== "visible") out.clipped.push(describe(e));
+      if (r.right > sr.right + 1 || r.bottom > sr.bottom + 1 || r.left < sr.left - 1 || r.top < sr.top - 1) out.outside.push(describe(e));
+    }
+    var pf = node.querySelector(".pf");
+    if (pf) {
+      var texts = pf.querySelectorAll("h1,h2,h3,h4,button,th,td,label,a,span,p,li");
+      var pr = pf.getBoundingClientRect();
+      for (var j = 0; j < texts.length && out.clipped.length < 25; j++) {
+        var t = texts[j], cs = getComputedStyle(t);
+        if (!t.offsetParent || !t.textContent.trim()) continue;
+        if (t.scrollWidth > t.clientWidth + 2 && (cs.overflowX === "hidden" || cs.overflowX === "clip") && cs.textOverflow !== "ellipsis" && t.children.length === 0) out.clipped.push("product " + describe(t));
+        var tr = t.getBoundingClientRect();
+        if (tr.width && (tr.right > pr.right + 2 || tr.left < pr.left - 2) && t.children.length === 0) out.outside.push("product " + describe(t));
+      }
+    }
+    if (k <= 0) out.outside.push("stage not laid out");
+    return out;
+  }
+
+  window.__deck = {
+    ready: false,
+    slides: slides.map(function (s) { return { id: s.id, kind: s.kind, steps: stepsOf(s) }; }),
+    position: function () { return [cur.s + 1, cur.n + 1]; },
+    go: function (s, n) { goTo(s - 1, (n || 1) - 1); },
+    check: check
+  };
+
+  scale();
+  var p0 = parseHash();
+  goTo(p0.s, p0.n, true);
+  requestAnimationFrame(function () { scale(); goTo(cur.s, cur.n, true); window.__deck.ready = true; });
+})();
+
+</script>
+</body></html>

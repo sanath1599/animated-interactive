@@ -1,6 +1,7 @@
 /* Deck runtime embedded in every generated presentation. Reads #dk-data, mounts each product screen from
    <template id="tpl-ID"> into a scaled 1280px canvas, and drives slides, steps, the spotlight tour, deep links
-   (#slide.step&v=slug[&theme=dark]), keyboard/touch/fullscreen, count-ups and the verification hook window.__deck. */
+   (#slide.step&v=slug), keyboard/touch/fullscreen, count-ups and the verification hook window.__deck.
+   The colour mode is fixed when the deck is built (D.theme); there is no theme switch. */
 (function () {
   "use strict";
   var D = JSON.parse(document.getElementById("dk-data").textContent);
@@ -18,6 +19,7 @@
   function slug(sl) { return sl.id; }
   if (D.accent) document.documentElement.style.setProperty("--dk-accent", D.accent);
   if (D.accentInk) document.documentElement.style.setProperty("--dk-accent-ink", D.accentInk);
+  if (D.theme === "dark") document.documentElement.dataset.theme = "dark";
 
   /* ---------- product screen mounting ---------- */
   function mountScreen(frame, id, mode) {
@@ -25,7 +27,6 @@
     var canvas = el("div", "pf-canvas");
     var root = el("div", "pf sl-" + id);
     root.dataset.screen = id; root.dataset.mode = mode; root.dataset.step = "0";
-    if (D.productDark && document.documentElement.dataset.theme === "dark") root.dataset.theme = "dark";
     if (tpl) root.appendChild(tpl.content.cloneNode(true));
     canvas.appendChild(root); frame.appendChild(canvas);
     var listeners = [];
@@ -236,7 +237,7 @@
     prog.style.width = ((f + 1) / total * 100) + "%";
     cnt.textContent = (s + 1) + " / " + slides.length + (stepsOf(slides[s]) > 1 ? " · " + (n + 1) + "/" + stepsOf(slides[s]) : "");
     if (!quiet) {
-      var h = "#" + (s + 1) + "." + (n + 1) + "&v=" + slug(slides[s]) + (document.documentElement.dataset.theme === "dark" ? "&theme=dark" : "");
+      var h = "#" + (s + 1) + "." + (n + 1) + "&v=" + slug(slides[s]);
       try { history.replaceState(null, "", h); } catch { /* sandboxed */ }
     }
   }
@@ -244,12 +245,6 @@
   function prev() { if (cur.n > 0) goTo(cur.s, cur.n - 1); else if (cur.s > 0) goTo(cur.s - 1, stepsOf(slides[cur.s - 1]) - 1); }
   bNext.onclick = next; bBack.onclick = prev;
 
-  function setTheme(t) {
-    document.documentElement.dataset.theme = t;
-    document.getElementById("dk-theme").textContent = t === "dark" ? "Light" : "Dark";
-    if (D.productDark) { var ps = document.querySelectorAll(".pf"); for (var i = 0; i < ps.length; i++) { if (t === "dark") ps[i].dataset.theme = "dark"; else delete ps[i].dataset.theme; } }
-  }
-  document.getElementById("dk-theme").onclick = function () { setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); goTo(cur.s, cur.n); };
   function toggleFs() {
     if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
     else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
@@ -283,7 +278,6 @@
 
   function parseHash() {
     var h = location.hash.replace(/^#/, ""), m = /^(\d+)(?:\.(\d+))?/.exec(h);
-    if (/(^|&)theme=dark(&|$)/.test(h)) setTheme("dark");
     if (!m) return { s: 0, n: 0 };
     return { s: (+m[1] || 1) - 1, n: (+m[2] || 1) - 1 };
   }

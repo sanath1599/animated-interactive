@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 // Illustrative sample build, scripted to mirror the real phases a chat build reports to the dashboard.
 const STAGES = [
   "Request set up on the dashboard",
-  "Claude picks it up in claude.ai",
+  "Your assistant picks it up in the chat",
   "Reading the code",
   "Planning the slides",
   "Copying the product's styles",
@@ -54,7 +54,7 @@ export function HeroDemo() {
   const progress = Math.min(1, step / SCRIPT.length);
 
   return (
-    <div className="hd" role="img" aria-label="Animated example of a demo being built: Claude works in claude.ai while the dashboard shows each stage.">
+    <div className="hd" role="img" aria-label="Animated example of a demo being built: Claude or ChatGPT works in the chat while the dashboard shows each stage.">
       <div className="win-bar">
         <i /><i /><i />
         <span className="win-url mono">app.antm.ai/dashboard · sample build</span>

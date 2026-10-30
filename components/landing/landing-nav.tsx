@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark, BRAND_NAME } from "@/components/brand";
+import { SocialLinks } from "@/components/social";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function LandingNav() {
@@ -11,6 +12,7 @@ export function LandingNav() {
           <Link href="/#features">Features</Link><Link href="/#product">Product</Link><Link href="/samples">Samples</Link><Link href="/#how">How it works</Link><Link href="/#trust">Safety</Link><Link href="/#faq">FAQ</Link>
         </nav>
         <div className="row" style={{ gap: ".5rem" }}>
+          <SocialLinks />
           <ThemeToggle />
           <Link href="/dashboard" className="btn primary sm">Get started</Link>
         </div>

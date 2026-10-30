@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_run ON events(run_id, id);
 
--- Studio connector (MCP) for the claude.ai artifact: OAuth 2.1 authorization server state.
+-- Studio connector (MCP) for Claude and ChatGPT: OAuth 2.1 authorization server state.
 CREATE TABLE IF NOT EXISTS oauth_clients (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, redirect_uris TEXT NOT NULL, created_at INTEGER NOT NULL
 );
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS decks (
   bytes INTEGER NOT NULL DEFAULT 0, state TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS decks_user ON decks(user_id, updated_at);
--- Usage history reported by the artifact: one row per build, resume or revision, and one per Claude call it made.
--- Claude runs on the viewer's plan, so sizes are measured in the page and tokens are only estimated from them.
+-- Usage history: one row per build, resume or revision, and one per assistant step it made.
+-- The assistant runs on the user's plan, so only sizes are known and tokens are estimated from them.
 CREATE TABLE IF NOT EXISTS generations (
   id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, kind TEXT NOT NULL, status TEXT NOT NULL, phase TEXT,
   title TEXT NOT NULL, label TEXT NOT NULL, branch TEXT, workspace_id TEXT, deck_id TEXT,

@@ -34,8 +34,6 @@ export function getConfig() {
     maxUploadBytes: int("MAX_UPLOAD_MB", 10) * 1024 * 1024,
     maxUploadFiles: int("MAX_UPLOAD_FILES", 5),
     devAuthBypass: process.env.DEV_AUTH_BYPASS === "1" && process.env.NODE_ENV !== "production",
-    /** Published claude.ai artifact that drives the Studio connector (the dashboard links to it). */
-    artifactUrl: process.env.ARTIFACT_URL ?? "",
     /** GitHub logins that see usage across all users on /dashboard (comma separated). */
     adminLogins: (process.env.ADMIN_LOGINS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
   };
@@ -43,7 +41,7 @@ export function getConfig() {
 
 export type AppConfig = ReturnType<typeof getConfig>;
 
-/** Display name the artifact looks the connector up by. It must match exactly. */
+/** The connector's display name in Claude and ChatGPT; chat prompts refer to it by this name. */
 export const CONNECTOR_NAME = "Animated Technical Interactive";
 
 export const mcpUrl = () => `${getConfig().appUrl}/api/mcp`;

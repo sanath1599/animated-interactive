@@ -12,6 +12,7 @@ import { cloneGit, parseGitUrl } from "@/lib/sources/git";
 import { credentialAuth, credentialForHost } from "@/lib/sources/credentials";
 import { extractZip } from "@/lib/sources/archive";
 import { uploadPath } from "./uploads";
+import { listImages } from "./images";
 
 export type WorkspaceSource =
   | { type: "github"; repo: string; branch?: string }
@@ -30,7 +31,7 @@ const MAX_WORKSPACES_PER_USER = 12;
 const TEXT_LIMIT = 200_000;
 
 export const studioDir = (...p: string[]) => path.join(getConfig().dataDir, "studio", ...p);
-const repoDir = (id: string) => studioDir("workspaces", id, "repo");
+export const repoDir = (id: string) => studioDir("workspaces", id, "repo");
 
 type Row = Record<string, unknown>;
 const toWs = (r: Row): Workspace => ({
@@ -167,6 +168,7 @@ export function workspaceSummary(ws: Workspace) {
     readme: readme ? { path: readme.path, text: read(readme.path, 8000) } : null,
     manifests: tree.filter((f) => MANIFESTS.test(f.path.split("/").pop() ?? "") && f.path.split("/").length <= 4).slice(0, 12)
       .map((f) => ({ path: f.path, text: read(f.path, 4000) })),
+    images: listImages(tree),
   };
 }
 

@@ -2,8 +2,8 @@ import { randomBytes } from "node:crypto";
 import { getDb } from "@/lib/db";
 
 /**
- * Build history and usage analytics for the claude.ai artifact. Claude runs on the viewer's own plan,
- * so the page reports what it sent and received; token counts are estimates from those sizes.
+ * Build history and usage analytics for chat builds. The assistant runs on the user's own plan, so
+ * the server records the sizes of what it was sent and returned; token counts are estimates from those.
  */
 
 export const GENERATION_KINDS = ["build", "resume", "revise"] as const;
@@ -193,12 +193,24 @@ export function usageSummary(userId: number | null, days = 30): UsageSummary {
   return out;
 }
 
-export interface ConnectorStatus { connected: boolean; connectedAt: number | null; lastUsedAt: number | null }
+export type Assistant = "claude" | "chatgpt" | "other";
+export interface ConnectorStatus { connected: boolean; connectedAt: number | null; lastUsedAt: number | null; assistants: Assistant[] }
 
-/** Whether claude.ai holds a live grant for this user (an unexpired, unrevoked refresh token), and when it last called. */
+/** Which assistant a registered OAuth client is, from where it sends users back after sign-in. */
+export function assistantOf(redirectUris: string[]): Assistant {
+  const hosts = redirectUris.map((u) => { try { return new URL(u).hostname; } catch { return ""; } });
+  if (hosts.some((h) => /(^|\.)(claude\.ai|claude\.com|anthropic\.com)$/.test(h))) return "claude";
+  if (hosts.some((h) => /(^|\.)(chatgpt\.com|openai\.com)$/.test(h))) return "chatgpt";
+  return "other";
+}
+
+/** Whether Claude or ChatGPT holds a live grant for this user (an unexpired, unrevoked refresh token), which ones, and when it last called. */
 export function connectorStatus(userId: number, refreshTtlMs: number): ConnectorStatus {
   const db = getDb();
-  const live = db.prepare("SELECT MAX(expires_at) exp FROM oauth_tokens WHERE user_id=? AND kind='refresh' AND revoked=0 AND expires_at>?").get(userId, Date.now()) as { exp: number | null };
+  const live = db.prepare(`SELECT MAX(t.expires_at) exp, c.redirect_uris uris FROM oauth_tokens t JOIN oauth_clients c ON c.id=t.client_id
+    WHERE t.user_id=? AND t.kind='refresh' AND t.revoked=0 AND t.expires_at>? GROUP BY t.client_id`).all(userId, Date.now()) as { exp: number; uris: string }[];
   const last = db.prepare("SELECT MAX(ts) ts FROM tool_calls WHERE user_id=?").get(userId) as { ts: number | null };
-  return { connected: live.exp !== null, connectedAt: live.exp !== null ? live.exp - refreshTtlMs : null, lastUsedAt: last.ts };
+  const exp = live.length ? Math.max(...live.map((r) => r.exp)) : null;
+  const assistants = [...new Set(live.map((r) => assistantOf(JSON.parse(r.uris) as string[])))];
+  return { connected: exp !== null, connectedAt: exp !== null ? exp - refreshTtlMs : null, lastUsedAt: last.ts, assistants };
 }

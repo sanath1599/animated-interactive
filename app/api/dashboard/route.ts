@@ -4,7 +4,7 @@ import { listInstallations } from "@/lib/github/client";
 import { REFRESH_TTL_MS } from "@/lib/oauth/server";
 import { listCredentials } from "@/lib/sources/credentials";
 import { connectorStatus, listGenerations, usageSummary } from "@/lib/studio/usage";
-import { chatPrompt, claudeChatUrl } from "@/lib/studio/chat-build";
+import { chatPrompt, chatUrl, type ChatAssistant } from "@/lib/studio/chat-build";
 import { getDb } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -33,8 +33,7 @@ export async function GET(req: Request) {
   return json({
     user: { login: session.login, name: session.name, avatarUrl: session.avatarUrl, admin },
     github: { installations, installUrl: cfg.github.appSlug ? `https://github.com/apps/${cfg.github.appSlug}/installations/new` : null },
-    connector: { ...connector, name: CONNECTOR_NAME, mcpUrl: mcpUrl(), installUrl: claudeInstallUrl() },
-    artifactUrl: cfg.artifactUrl || null,
+    connector: { ...connector, name: CONNECTOR_NAME, mcpUrl: mcpUrl(), installUrl: claudeInstallUrl(), chatgptPluginsUrl: "https://chatgpt.com/plugins" },
     credentials: listCredentials(session.userId),
     // Builds set up here and handed to a chat keep their claude.ai link until they finish.
     generations: withChatLinks(session.userId, listGenerations(session.userId, 100)),
@@ -43,7 +42,12 @@ export async function GET(req: Request) {
   });
 }
 
-function withChatLinks<G extends { id: string; title: string; status: string }>(userId: number, gens: G[]): (G & { chat: boolean; claudeUrl: string | null })[] {
-  const ids = new Set((getDb().prepare("SELECT generation_id FROM chat_requests WHERE user_id=?").all(userId) as { generation_id: string }[]).map((r) => r.generation_id));
-  return gens.map((x) => ({ ...x, chat: ids.has(x.id), claudeUrl: ids.has(x.id) && x.status !== "completed" ? claudeChatUrl(chatPrompt(x.id, x.title)) : null }));
+function withChatLinks<G extends { id: string; title: string; status: string }>(userId: number, gens: G[]):
+  (G & { chat: boolean; assistant: ChatAssistant | null; chatUrl: string | null })[] {
+  const rows = getDb().prepare("SELECT generation_id, config FROM chat_requests WHERE user_id=?").all(userId) as { generation_id: string; config: string }[];
+  const byId = new Map(rows.map((r) => [r.generation_id, ((JSON.parse(r.config) as { assistant?: ChatAssistant }).assistant ?? "claude") as ChatAssistant]));
+  return gens.map((x) => {
+    const a = byId.get(x.id) ?? null;
+    return { ...x, chat: a !== null, assistant: a, chatUrl: a && x.status !== "completed" ? chatUrl(a, chatPrompt(x.id, x.title)) : null };
+  });
 }

@@ -1,5 +1,19 @@
 [
   {
+    "slug": "antm",
+    "title": "antm",
+    "repo": "sanath1599/animated-interactive",
+    "tagline": "This app, demoed by itself: pick a repository, and Claude or ChatGPT rebuilds its real screens as a click-through demo that antm checks in a browser.",
+    "highlights": [
+      "Six screens rebuilt from this repository's code: the landing page, setup, the four-step New demo form, the chat build, Your demos and Usage",
+      "The real ember theme, dashboard top bar, cover preview and report viewer, with a spotlight tour on each screen",
+      "A Your turn slide where the tabs, the form's Continue, the actions menu and both reports all work",
+      "Repositories, builds, token counts and the chat transcript are labelled illustrative"
+    ],
+    "bytes": 139478,
+    "screenshots": 33
+  },
+  {
     "slug": "ultramem",
     "title": "UltraMem",
     "repo": "sanath1599/UltraMem",
