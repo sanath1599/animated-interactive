@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { sileo } from "sileo";
 import { AccessTokens } from "./access-tokens";
 import { Frame, Loading, SignedOutGate } from "./frame";
 import { ago, useDashboard } from "./use-dashboard";
@@ -31,6 +33,20 @@ export function Setup() {
     const id = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 4000);
     return () => clearInterval(id);
   }, [installing, needsInstall, load]);
+  // Say so when an assistant or the GitHub App gets connected while this page is open.
+  const router = useRouter();
+  const before = useRef<{ assistants: string[]; installations: number | null } | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const was = before.current;
+    before.current = { assistants: data.connector.assistants, installations: data.github.installations };
+    if (!was) return;
+    for (const a of ["claude", "chatgpt"] as const) {
+      if (!data.connector.assistants.includes(a) || was.assistants.includes(a)) continue;
+      sileo.action({ title: `${a === "claude" ? "Claude" : "ChatGPT"} connected`, description: "You can build a demo now.", button: { title: "Build a demo", onClick: () => router.push("/dashboard") } });
+    }
+    if (was.installations === 0 && (data.github.installations ?? 0) > 0) sileo.success({ title: "Repositories connected", description: "antm can now read the repositories you chose on GitHub." });
+  }, [data, router]);
   if (signedOut) return <SignedOutGate />;
   const has = (a: "claude" | "chatgpt") => data?.connector.assistants.includes(a) ?? false;
   // Show the assistant the user picked, else one that's connected, else Claude.

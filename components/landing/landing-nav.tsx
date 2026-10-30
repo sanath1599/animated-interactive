@@ -9,12 +9,13 @@ export function LandingNav() {
       <div className="ln-in">
         <Link href="/" className="brand"><BrandMark /><span className="brand-text">{BRAND_NAME}</span></Link>
         <nav className="ln-links" aria-label="Sections">
-          <Link href="/#features">Features</Link><Link href="/#product">Product</Link><Link href="/samples">Samples</Link><Link href="/#how">How it works</Link><Link href="/#trust">Safety</Link><Link href="/#faq">FAQ</Link>
+          <Link href="/samples">Samples</Link><Link href="/#how">How it works</Link><Link href="/#security">Security</Link><Link href="/#faq">FAQ</Link>
         </nav>
-        <div className="row" style={{ gap: ".5rem" }}>
+        <div className="ln-end">
           <SocialLinks />
           <ThemeToggle />
-          <Link href="/dashboard" className="btn primary sm">Get started</Link>
+          <Link href="/dashboard" className="ln-signin">Sign in</Link>
+          <Link href="/dashboard" className="btn primary sm">Build a demo</Link>
         </div>
       </div>
     </header>

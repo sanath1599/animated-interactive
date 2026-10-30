@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { sileo } from "sileo";
 import { api, fmtBytes } from "@/lib/client";
 import { Select } from "../ui/select";
 import type { Credential } from "./access-tokens";
@@ -89,7 +90,7 @@ export function NewDemo({ credentials, connected, onCreated }: { credentials: Cr
     setError(null);
     // Open the tab now, while the click still counts as a user gesture; it is pointed at the chat once the server answers.
     const win = window.open("", "_blank");
-    try {
+    const start = async () => {
       let src: unknown;
       if (tab === "github") src = { type: "github", repo: repo!.fullName, branch: branch || undefined };
       else if (tab === "git") src = { type: "git", url: git.url.trim(), branch: git.branch.trim() || undefined, credentialId: git.credentialId || undefined };
@@ -102,6 +103,14 @@ export function NewDemo({ credentials, connected, onCreated }: { credentials: Cr
       const c = await api<Created>("/api/dashboard/demos", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: src, ...form, assistant, date: fmtDate(form.date) }),
+      });
+      return c;
+    };
+    try {
+      const c = await sileo.promise(start, {
+        loading: { title: tab === "zip" ? "Uploading your code" : "Setting up your demo" },
+        success: (r: Created) => ({ title: "Demo request ready", description: r.assistant === "chatgpt" ? "ChatGPT opened in a new tab. The request is on your clipboard too." : "Claude opened in a new tab with the request typed in." }),
+        error: (e) => ({ title: "Couldn't start the demo", description: (e as Error).message, duration: 10_000 }),
       });
       try { localStorage.setItem(BYLINE_KEY, JSON.stringify({ presenter: form.presenter.trim(), organization: form.organization.trim() })); } catch { /* not saved: next form starts blank */ }
       setCreated(c);

@@ -3,6 +3,13 @@ import { useRef, useState } from "react";
 
 const TABS = ["Code", "Presentation", "Chat", "Result"] as const;
 type Tab = (typeof TABS)[number];
+// The four steps, in order: what the person does at each one.
+const STEPS: Record<Tab, { title: string; text: string }> = {
+  Code: { title: "Choose the code", text: "A GitHub repository the app can read, a repository on Azure DevOps, GitLab or Bitbucket, or a zip file." },
+  Presentation: { title: "Describe the demo", text: "A title, how detailed it should be, light or dark, and who is presenting. Everything else is optional." },
+  Chat: { title: "Your assistant builds it", text: "Claude or ChatGPT opens with the request typed in. It reads the code and rebuilds each screen; antm checks each one in Chrome as it lands." },
+  Result: { title: "Open it and share it", text: "The demo and its two reports wait on your dashboard. Preview it, download the HTML file, or ask for changes in the same chat." },
+};
 const URLS: Record<Tab, string> = { Code: "app.antm.ai/dashboard", Presentation: "app.antm.ai/dashboard", Chat: "claude.ai or chatgpt.com", Result: "app.antm.ai/dashboard" };
 
 const REPOS = [
@@ -31,7 +38,7 @@ function Panel({ tab }: { tab: Tab }) {
       <div className="pp pp-split">
         <div className="pp pp-form">
           <label>Title</label>
-          <div className="pp-input serif">Northwind quarterly review<span className="caret">▍</span></div>
+          <div className="pp-input">Northwind quarterly review</div>
           <label>Coverage</label>
           <div className="pp-choices">
             <div><strong>Brief</strong><span className="small muted">4–6 slides</span></div>
@@ -39,7 +46,7 @@ function Panel({ tab }: { tab: Tab }) {
             <div><strong>Detailed</strong><span className="small muted">Every page and state</span></div>
           </div>
         </div>
-        <div className="pp-cover"><span className="small muted">northwind/analytics-portal, main</span><b>Northwind quarterly review</b><span className="small muted">Presented by Dana Reyes · Northwind · 12 November 2026</span><i>Start</i></div>
+        <div className="pp-cover"><span className="small muted">northwind/analytics-portal, main</span><b>Northwind quarterly review</b><span className="small muted">Presented by Dana Reyes, Northwind, 12 November 2026</span><i>Start</i></div>
       </div>
     );
   if (tab === "Chat")
@@ -70,19 +77,24 @@ export function ProductTabs() {
   const [tab, setTab] = useState<Tab>("Code");
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   function onKey(e: React.KeyboardEvent, i: number) {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    const n = (i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length;
+    const fwd = e.key === "ArrowDown" || e.key === "ArrowRight", back = e.key === "ArrowUp" || e.key === "ArrowLeft";
+    if (!fwd && !back) return;
+    e.preventDefault();
+    const n = (i + (fwd ? 1 : TABS.length - 1)) % TABS.length;
     setTab(TABS[n]); refs.current[n]?.focus();
   }
   return (
     <div className="pt">
-      <div className="pt-tabs" role="tablist" aria-label="Product tour">
+      <div className="pt-tabs" role="tablist" aria-label="Steps" aria-orientation="vertical">
         {TABS.map((t, i) => (
-          <button key={t} ref={(el) => { refs.current[i] = el; }} role="tab" id={`tab-${t}`} aria-selected={tab === t} aria-controls="pt-panel" tabIndex={tab === t ? 0 : -1} onClick={() => setTab(t)} onKeyDown={(e) => onKey(e, i)} className={tab === t ? "on" : ""}>{i + 1}. {t}</button>
+          <button key={t} ref={(el) => { refs.current[i] = el; }} role="tab" id={`tab-${t}`} aria-selected={tab === t} aria-controls="pt-panel" tabIndex={tab === t ? 0 : -1} onClick={() => setTab(t)} onKeyDown={(e) => onKey(e, i)}>
+            <span className="pt-n">{i + 1}</span>
+            <span><strong>{STEPS[t].title}</strong><span className="pt-text">{STEPS[t].text}</span></span>
+          </button>
         ))}
       </div>
       <div className="win">
-        <div className="win-bar"><i /><i /><i /><span className="win-url mono">{URLS[tab]}</span></div>
+        <div className="win-bar"><span className="win-url mono">{URLS[tab]}</span><span className="small win-note">Illustration</span></div>
         <div id="pt-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="pt-panel" key={tab}><Panel tab={tab} /></div>
       </div>
     </div>

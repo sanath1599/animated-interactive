@@ -93,3 +93,7 @@ input[type=file] { font: inherit; font-size: .85rem; }
 .social-link { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; color: hsl(var(--muted-foreground)); transition: color .15s, background-color .15s; }
 .social-link:hover { color: hsl(var(--foreground)); background: hsl(var(--secondary)); }
 .social-icon { width: 1.05rem; height: 1.05rem; flex: none; }
+/* Toasts (sileo): the app's status hues at mid tones, since a toast is dark on light pages and light on dark ones. */
+:root:root { --sileo-state-success: hsl(155 70% 34%); --sileo-state-error: hsl(0 72% 47%); --sileo-state-action: hsl(21 85% 48%); }
+/* Titles are written in sentence case; sileo capitalizes every word by default. */
+html [data-sileo-title] { text-transform: none; }
