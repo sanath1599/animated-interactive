@@ -1,7 +1,7 @@
 import "../app.css";
 import { Demos } from "@/components/dashboard/demos";
 
-export const metadata = { title: "Demos · Animated Technical Interactive" };
+export const metadata = { title: "Demos · antm" };
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ deck?: string }> }) {
   const { deck } = await searchParams;

@@ -10,7 +10,7 @@ export const maxDuration = 300;
 /** 401 that tells MCP clients where to discover the authorization server (RFC 9728). */
 function unauthorized(error = "invalid_token") {
   const meta = `${getConfig().appUrl}/.well-known/oauth-protected-resource/api/mcp`;
-  return new Response(JSON.stringify({ error, error_description: "Sign in to connect Animated Technical Interactive." }), {
+  return new Response(JSON.stringify({ error, error_description: "Sign in to connect antm." }), {
     status: 401,
     headers: { "Content-Type": "application/json", "WWW-Authenticate": `Bearer resource_metadata="${meta}", error="${error}"`, "Cache-Control": "no-store" },
   });

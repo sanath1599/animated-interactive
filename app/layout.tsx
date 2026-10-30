@@ -7,8 +7,8 @@ const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["nor
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-src" });
 
 export const metadata: Metadata = {
-  title: "Animated Technical Interactive",
-  description: "Turn any GitHub repository into a faithful, interactive executive demo. Read-only access, verified in a real browser.",
+  title: "antm · interactive demos from your code",
+  description: "Turn a repository into an interactive, click-through demo with Claude or ChatGPT. Read-only access, every slide checked in a real browser.",
 };
 
 // Applies the saved (or system) theme before first paint to avoid a flash.

@@ -10,6 +10,14 @@ export async function POST(req: Request) {
   const form = type.includes("application/json")
     ? new URLSearchParams(Object.entries((await req.json().catch(() => ({}))) as Record<string, string>))
     : new URLSearchParams(await req.text());
+  // Clients registered as public may still identify themselves with HTTP Basic (client_id:secret); the secret is ignored.
+  const basic = /^Basic\s+(.+)$/i.exec(req.headers.get("authorization") ?? "");
+  if (basic && !form.get("client_id")) {
+    const id = Buffer.from(basic[1], "base64").toString("utf8").split(":")[0];
+    let client = "";
+    try { client = decodeURIComponent(id); } catch { /* malformed: left unset, so the request fails as invalid_client */ }
+    if (client) form.set("client_id", client);
+  }
   try {
     return Response.json(exchangeToken(form), { headers: { "Cache-Control": "no-store", Pragma: "no-cache", ...CORS } });
   } catch (e) {

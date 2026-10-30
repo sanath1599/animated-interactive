@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getConfig } from "@/lib/config";
 import { NEXT_COOKIE, STATE_COOKIE, isSafeNext, safeEqual, setSession } from "@/lib/auth/session";
-import { fetchGithubUser } from "@/lib/github/client";
+import { fetchGithubUser, listInstallations } from "@/lib/github/client";
 import { saveGithubToken } from "@/lib/github/user-token";
 import { upsertUser } from "@/lib/runs/store";
 
@@ -37,7 +37,14 @@ export async function GET(req: Request) {
     expiresAt, issuedAt: Date.now(),
   });
   saveGithubToken(user.id, { accessToken: tok.access_token, refreshToken: tok.refresh_token ?? null, expiresAt });
-  const next = jar.get(NEXT_COOKIE)?.value;
+  const saved = jar.get(NEXT_COOKIE)?.value;
   jar.delete(NEXT_COOKIE);
-  return NextResponse.redirect(`${cfg.appUrl}${next && isSafeNext(next) ? next : "/app"}`);
+  const next = saved && isSafeNext(saved) ? saved : "/app";
+  // A new user who hasn't installed the GitHub App can't pick any repository, so send them to that step first.
+  // Connector sign-ins (claude.ai or ChatGPT waiting on /api/oauth/authorize) continue without the detour.
+  if (cfg.github.appSlug && !next.startsWith("/api/")) {
+    const installs = await listInstallations({ userId: user.id, login: user.login, name: user.name, avatarUrl: user.avatarUrl, accessToken: tok.access_token, refreshToken: null, expiresAt, issuedAt: Date.now() }).catch(() => null);
+    if (installs && installs.length === 0) return NextResponse.redirect(`${cfg.appUrl}/dashboard/setup`);
+  }
+  return NextResponse.redirect(`${cfg.appUrl}${next}`);
 }

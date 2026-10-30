@@ -3,7 +3,7 @@ import { BrandMark } from "@/components/brand";
 import { currentSession } from "@/lib/api";
 import { openPending } from "@/lib/oauth/pending";
 
-export const metadata = { title: "Connect · Animated Technical Interactive" };
+export const metadata = { title: "Connect · antm" };
 export const dynamic = "force-dynamic";
 
 /** Consent screen for the Studio connector (OAuth authorization endpoint's UI). */
@@ -21,7 +21,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
           <>
             <h1 id="connect-h">Allow {pending.clientName}?</h1>
             <p className="muted">
-              <strong>{host}</strong> is asking to use Animated Technical Interactive as <span className="mono">{session.login}</span>.
+              <strong>{host}</strong> is asking to use antm as <span className="mono">{session.login}</span>.
             </p>
             <div className="notice" style={{ textAlign: "left" }}>
               <p className="eyebrow">It will be able to</p>

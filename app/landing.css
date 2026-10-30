@@ -24,8 +24,8 @@ main { max-width: 74rem; margin: 0 auto; padding: 0 1.25rem; }
 
 /* hero: the one orchestrated entrance */
 .hero { display: grid; gap: 3rem; padding: 4.5rem 0 2rem; align-items: center; }
-@media (min-width: 62rem) { .hero { grid-template-columns: 1fr 1.08fr; gap: 3.5rem; padding-top: 6rem; } }
-.hero h1 { font-size: clamp(2.8rem, 7vw, 5.2rem); line-height: .98; letter-spacing: -.035em; margin: 1.1rem 0 1.3rem; }
+@media (min-width: 62rem) { .hero { grid-template-columns: .86fr 1.24fr; gap: 3rem; padding-top: 5rem; } }
+.hero h1 { font-size: clamp(2.7rem, 6vw, 4.6rem); line-height: .98; letter-spacing: -.035em; margin: 1.1rem 0 1.3rem; }
 .lede { font-size: 1.15rem; max-width: 33rem; color: hsl(var(--muted-foreground)); }
 .hero-cta { margin: 1.8rem 0 1.1rem; }
 .pill { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--mono); font-size: .75rem; padding: .35rem .8rem; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--card) / .8); color: hsl(var(--muted-foreground)); }
@@ -33,6 +33,35 @@ main { max-width: 74rem; margin: 0 auto; padding: 0 1.25rem; }
 .hero-copy > :nth-child(2) { animation-delay: .08s; } .hero-copy > :nth-child(3) { animation-delay: .16s; } .hero-copy > :nth-child(4) { animation-delay: .24s; } .hero-copy > :nth-child(5) { animation-delay: .3s; }
 .hero-demo { animation-delay: .25s; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+
+/* assistant badges: the two hosts antm runs in */
+.ai-badges { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ai-badge { display: inline-flex; align-items: center; gap: .5rem; padding: .4rem .85rem .4rem .55rem; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--card) / .85); font-size: .88rem; font-weight: 500; box-shadow: 0 6px 20px -14px hsl(var(--shadow) / .6); }
+.ai-icon { width: 1.15rem; height: 1.15rem; flex: none; }
+.hero-facts { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; }
+.hero-facts li { display: inline-flex; align-items: center; gap: .45rem; }
+.hero-facts li::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: hsl(var(--mint)); }
+
+/* hero samples: a live sample deck in a browser frame */
+.hs { margin: 0; display: grid; gap: .85rem; }
+.hs .win { box-shadow: 0 50px 90px -40px hsl(var(--shadow) / .55), 0 0 0 1px hsl(var(--card) / .6) inset; }
+.hs-full { font-size: .75rem; white-space: nowrap; }
+.hs-stage { position: relative; aspect-ratio: 1280 / 752; overflow: hidden; background: hsl(var(--background)); }
+.hs-stage iframe { position: absolute; top: 0; left: 0; display: block; border: 0; transform-origin: 0 0; }
+.hs-cap { display: grid; gap: .5rem; }
+.hs-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.hs-tabs button { font: 500 .85rem var(--sans); padding: .38rem .9rem; border-radius: 999px; border: 1px solid hsl(var(--border)); background: transparent; color: hsl(var(--muted-foreground)); cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+.hs-tabs button:hover { color: hsl(var(--foreground)); }
+.hs-tabs button.on { background: hsl(var(--foreground)); border-color: hsl(var(--foreground)); color: hsl(var(--background)); }
+
+/* watch a build */
+.watch { display: grid; gap: 2rem; align-items: center; }
+@media (min-width: 62rem) { .watch { grid-template-columns: .8fr 1.2fr; gap: 3rem; } }
+.watch h2 { font-size: clamp(2rem, 4.2vw, 3rem); margin-bottom: .8rem; }
+.watch-ai { display: grid; gap: .9rem; margin-top: 1.5rem; }
+.watch-ai > div { display: flex; gap: .8rem; align-items: flex-start; }
+.watch-ai .ai-icon { width: 1.6rem; height: 1.6rem; margin-top: .15rem; }
+.watch-ai p { margin: 0; }
 
 .built { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 2rem; padding: 2.25rem 0 .5rem; border-top: 1px solid hsl(var(--border) / .6); margin-top: 3rem; }
 .built-item { font-family: var(--serif); font-size: 1.3rem; color: hsl(var(--muted-foreground)); } .built-item b { font-weight: 400; }
@@ -144,3 +173,5 @@ main { max-width: 74rem; margin: 0 auto; padding: 0 1.25rem; }
 .pp-msg { justify-self: end; max-width: 34rem; padding: .8rem 1rem; border-radius: 1rem 1rem .3rem 1rem; background: hsl(var(--secondary)); font-size: .9rem; }
 .pp-tools { display: grid; gap: .45rem; }
 .pp-tool { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; }
+.lf-social { display: flex; flex-direction: column; gap: .6rem; } .lf-social a { display: inline-flex; align-items: center; gap: .5rem; }
+.lf-copy a { color: inherit; }

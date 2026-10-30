@@ -28,6 +28,9 @@ beforeAll(async () => {
 });
 afterAll(() => { delete process.env.RUNNER_MODE; delete process.env.APP_URL; });
 
+/** A 1×1 PNG. */
+const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 const pkce = () => {
   const verifier = randomBytes(32).toString("base64url");
   return { verifier, challenge: createHash("sha256").update(verifier).digest("base64url") };
@@ -46,7 +49,9 @@ function authorize(clientId: string, userId = 7) {
 describe("connector OAuth", () => {
   it("registers public clients and rejects unsafe redirect URIs", () => {
     expect(() => oauth.registerClient({ redirect_uris: ["http://evil.example/cb"] })).toThrow();
-    expect(() => oauth.registerClient({ redirect_uris: ["https://ok.example/cb"], token_endpoint_auth_method: "client_secret_post" })).toThrow();
+    // Clients asking for a secret-based method are registered as public clients (the response says "none").
+    expect(oauth.registerClient({ redirect_uris: ["https://ok.example/cb"], token_endpoint_auth_method: "client_secret_post" }).id).toMatch(/^cl_/);
+    expect(oauth.authorizationServerMetadata()).toMatchObject({ authorization_response_iss_parameter_supported: true, code_challenge_methods_supported: ["S256"] });
     expect(oauth.registerClient({ client_name: "Claude", redirect_uris: ["https://claude.ai/api/mcp/auth_callback"] }).id).toMatch(/^cl_/);
   });
 
@@ -73,6 +78,41 @@ describe("connector OAuth", () => {
     expect(oauth.verifyAccessToken(t2.access_token)?.userId).toBe(7);
     expect(() => oauth.exchangeToken(new URLSearchParams({ grant_type: "refresh_token", client_id: c.id, refresh_token: t.refresh_token }))).toThrow(/already used/);
     expect(oauth.verifyAccessToken(t2.access_token)).toBeNull(); // reuse revokes the whole family
+  });
+
+  it("connects ChatGPT the way it registers: DCR with its callback, then a token request using HTTP Basic", async () => {
+    const reg = await (await import("@/app/api/oauth/register/route")).POST(new Request("https://studio.test/api/oauth/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ client_name: "ChatGPT", redirect_uris: ["https://chatgpt.com/connector_platform_oauth_redirect"], token_endpoint_auth_method: "client_secret_basic", grant_types: ["authorization_code", "refresh_token"] }),
+    }));
+    expect(reg.status).toBe(201);
+    const client = await reg.json() as { client_id: string; token_endpoint_auth_method: string };
+    expect(client.token_endpoint_auth_method).toBe("none");
+    const { verifier, challenge } = pkce();
+    const req = oauth.validateAuthorizeRequest(new URLSearchParams({
+      response_type: "code", client_id: client.client_id, redirect_uri: "https://chatgpt.com/connector_platform_oauth_redirect",
+      code_challenge: challenge, code_challenge_method: "S256", state: "s", resource: "https://studio.test/api/mcp",
+    }));
+    if ("redirectError" in req) throw new Error(req.redirectError);
+    const code = oauth.createAuthorizationCode(req, 9);
+    const tok = await (await import("@/app/api/oauth/token/route")).POST(new Request("https://studio.test/api/oauth/token", {
+      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", authorization: `Basic ${Buffer.from(`${client.client_id}:ignored`).toString("base64")}` },
+      body: new URLSearchParams({ grant_type: "authorization_code", code, code_verifier: verifier, redirect_uri: "https://chatgpt.com/connector_platform_oauth_redirect", resource: "https://studio.test/api/mcp" }),
+    }));
+    expect(tok.status).toBe(200);
+    // A malformed Basic header is a client error, not a crash.
+    const bad = await (await import("@/app/api/oauth/token/route")).POST(new Request("https://studio.test/api/oauth/token", {
+      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", authorization: `Basic ${Buffer.from("%").toString("base64")}` },
+      body: new URLSearchParams({ grant_type: "authorization_code", code: "x" }),
+    }));
+    expect(bad.status).toBe(401);
+    expect(oauth.verifyAccessToken(((await tok.json()) as { access_token: string }).access_token)?.userId).toBe(9);
+    const usage = await import("@/lib/studio/usage");
+    expect(usage.connectorStatus(9, oauth.REFRESH_TTL_MS).assistants).toEqual(["chatgpt"]);
+    expect(usage.assistantOf(["https://claude.ai/api/mcp/auth_callback"])).toBe("claude");
+    expect(usage.assistantOf(["https://evil.example/chatgpt.com"])).toBe("other");
+    oauth.pruneOAuth();
+    (await import("@/lib/db")).getDb().prepare("UPDATE oauth_tokens SET revoked=1 WHERE user_id=9").run();
   });
 });
 
@@ -139,28 +179,22 @@ describe("connector MCP endpoint", () => {
 
   it("lists its tools", async () => {
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["finish_demo", "get_deck", "list_branches", "list_sources", "open_workspace", "read_files", "record_generation", "record_usage", "save_deck", "save_demo_plan", "save_demo_screen", "save_demo_styles", "search_code", "start_demo", "upload_archive", "verify_deck", "workspace_status"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["finish_demo", "get_deck", "read_files", "record_generation", "save_demo_plan", "save_demo_screen", "save_demo_styles", "search_code", "start_demo", "view_images", "workspace_status"]);
   });
 
-  it("uploads a zip, prepares a workspace, reads and searches it, and saves a deck", async () => {
+  it("prepares a workspace from a zip, reads and searches it, and stores and checks a deck", async () => {
     const zip = zipSync({
       "demo/README.md": strToU8("# Demo app\nA tiny app."),
       "demo/package.json": strToU8(JSON.stringify({ name: "demo", dependencies: { react: "19" } })),
       "demo/src/App.tsx": strToU8("export function App() { return <h1 className=\"title\">Orders</h1>; }"),
       "demo/.env": strToU8("SECRET=1"),
     });
-    const b64 = Buffer.from(zip).toString("base64");
-    const half = Math.floor(zip.length / 2 / 3) * 3; // chunk on a base64 boundary
-    const first = await call("upload_archive", { name: "demo.zip", totalBytes: zip.length, offset: 0, chunk: Buffer.from(zip.subarray(0, half)).toString("base64") });
-    const done = await call("upload_archive", { name: "demo.zip", uploadId: first.json.uploadId, offset: half, chunk: Buffer.from(zip.subarray(half)).toString("base64") });
-    expect(done.json.complete).toBe(true);
-    void b64;
-
-    const opened = await call("open_workspace", { source: { type: "upload", uploadId: first.json.uploadId, name: "demo.zip" } });
-    let status = (await call("workspace_status", { workspaceId: opened.json.workspaceId })).json;
+    const uploadId = (await import("@/lib/studio/uploads")).uploadWhole(7, "demo.zip", Buffer.from(zip).toString("base64"));
+    const opened = await (await import("@/lib/studio/workspaces")).openWorkspace(7, { type: "upload", uploadId, name: "demo.zip" });
+    let status = (await call("workspace_status", { workspaceId: opened.id })).json;
     for (let i = 0; i < 50 && status.status === "preparing"; i++) {
       await new Promise((r) => setTimeout(r, 50));
-      status = (await call("workspace_status", { workspaceId: opened.json.workspaceId })).json;
+      status = (await call("workspace_status", { workspaceId: opened.id })).json;
     }
     expect(status.status).toBe("ready");
     expect(status.readme.text).toContain("Demo app");
@@ -175,19 +209,19 @@ describe("connector MCP endpoint", () => {
     expect(hits).toEqual([{ path: "src/App.tsx", line: 1, text: expect.stringContaining("title") }]);
 
     const html = `<!doctype html><title>t</title><div id="stage" style="width:200px;height:100px">Hello</div><script>window.__deck={ready:true,position:()=>[0,0],check:()=>({clipped:[],outside:[]})};</script>`;
-    const saved = (await call("save_deck", { workspaceId: status.workspaceId, title: "Demo", html, state: { v: 1 }, reports: { "evidence-report.md": "# Evidence" } })).json;
-    expect(saved.deckId).toMatch(/^deck_/);
+    const saved = (await import("@/lib/studio/decks")).saveDeck(7, { workspaceId: status.workspaceId, title: "Demo", label: "demo", html, state: { v: 1 }, reports: { "evidence-report.md": "# Evidence" } });
+    expect(saved.deck.id).toMatch(/^deck_/);
     expect(saved.externalReferences).toEqual([]);
-    const got = (await call("get_deck", { deckId: saved.deckId, include: ["html", "state", "reports"] })).json;
+    const got = (await call("get_deck", { deckId: saved.deck.id, include: ["html", "state", "reports"] })).json;
     expect(got.html).toBe(html);
     expect(got.state).toEqual({ v: 1 });
     expect(got.reports["evidence-report.md"]).toBe("# Evidence");
 
     if (!launch.resolveChromePath()) return; // browser verification needs a local Chrome
-    const v = await call("verify_deck", { deckId: saved.deckId, views: [{ id: "one", hash: "1.1", width: 800, height: 600 }] });
-    expect(v.json.ran).toBe(true);
-    expect(v.json.results[0]).toMatchObject({ id: "one", pageErrors: [], blockedRequests: [], issues: [] });
-    expect(v.content.some((c) => c.type === "image" && c.mimeType === "image/jpeg")).toBe(true);
+    const v = await (await import("@/lib/studio/verify")).verifyDeck(saved.deck.id, [{ id: "one", hash: "1.1", width: 800, height: 600 }]);
+    expect(v.ran).toBe(true);
+    expect(v.results[0]).toMatchObject({ id: "one", pageErrors: [], blockedRequests: [], issues: [] });
+    expect(v.results[0].screenshot).toBeTruthy();
   }, 60_000);
 
   it("keeps workspaces and decks owner-scoped", async () => {
@@ -208,8 +242,8 @@ describe("connector MCP endpoint", () => {
       { callId: "a1", stage: "Planning the deck", tier: "complex", promptBytes: 40_000, outputChars: 8_000, images: 2, ms: 60_000, ok: true },
       { callId: "a2", stage: "Rebuilding “Orders”", tier: "complex", promptBytes: 20_000, outputChars: 4_000, images: 0, ms: 30_000, ok: false, errorCode: "rate_limited" },
     ];
-    expect((await call("record_usage", { generationId: id, calls })).json.recorded).toBe(2);
-    expect((await call("record_usage", { generationId: id, calls })).json.recorded).toBe(0); // resent batch is ignored
+    expect(usage.recordClaudeCalls(7, id, calls)).toBe(2);
+    expect(usage.recordClaudeCalls(7, id, calls)).toBe(0); // resent batch is ignored
     await call("record_generation", { generationId: id, status: "completed", deckId: deck.id, viewsChecked: 12, viewsWithProblems: 1 });
 
     const [g] = usage.listGenerations(7);
@@ -222,7 +256,7 @@ describe("connector MCP endpoint", () => {
     expect(sum.daily).toHaveLength(7);
     expect(sum.daily.at(-1)!.calls).toBe(2);
     expect(sum.stages.map((s) => s.stage).sort()).toEqual(["Planning the deck", "Rebuilding"]);
-    expect(sum.tools.find((t) => t.tool === "record_usage")!.calls).toBe(2);
+    expect(sum.tools.find((t) => t.tool === "record_generation")!.calls).toBe(2);
     expect(usage.usageSummary(null, 7).users!.map((u) => u.login)).toContain("octo");
 
     // Another user can't see or write to this generation, and a stale run reads as interrupted.
@@ -237,17 +271,19 @@ describe("connector MCP endpoint", () => {
   it("reports the connector as linked while claude.ai holds a live grant", async () => {
     const usage = await import("@/lib/studio/usage");
     expect(usage.connectorStatus(7, oauth.REFRESH_TTL_MS)).toMatchObject({ connected: true, lastUsedAt: expect.any(Number) });
-    expect(usage.connectorStatus(9, oauth.REFRESH_TTL_MS)).toEqual({ connected: false, connectedAt: null, lastUsedAt: null });
+    expect(usage.connectorStatus(7, oauth.REFRESH_TTL_MS).assistants).toEqual(["claude"]);
+    expect(usage.connectorStatus(11, oauth.REFRESH_TTL_MS)).toEqual({ connected: false, connectedAt: null, lastUsedAt: null, assistants: [] });
   });
   it("builds a demo set up on the dashboard from a claude.ai chat: request, plan, styles, screens, finish", async () => {
     const chat = await import("@/lib/studio/chat-build");
     const uploads = await import("@/lib/studio/uploads");
-    const zip = zipSync({ "README.md": strToU8("# Orders"), "src/App.tsx": strToU8("export const App = () => <main className=\"app\"><h1>Orders</h1></main>;") });
+    const zip = zipSync({ "README.md": strToU8("# Orders"), "src/App.tsx": strToU8("export const App = () => <main className=\"app\"><img src=\"/logo.png\" /><h1>Orders</h1></main>;"), "public/logo.png": Buffer.from(PNG, "base64") });
     const uploadId = uploads.uploadWhole(7, "orders.zip", Buffer.from(zip).toString("base64"));
     const req = await chat.createChatRequest(7, { type: "upload", uploadId, name: "orders" }, { title: "Orders Hub", details: "Show the orders list", detail: "brief", presenter: "Ana Diaz", organization: "Acme", date: "12 November 2026", language: "French" });
     expect(req.prompt).toContain(`requestId ${req.generationId}`);
     expect(req.prompt).toContain("Animated Technical Interactive");
     expect(req.claudeUrl).toBe(`https://claude.ai/new?q=${encodeURIComponent(req.prompt)}`);
+    expect(req).toMatchObject({ assistant: "claude", chatUrl: req.claudeUrl, chatgptUrl: `https://chatgpt.com/?q=${encodeURIComponent(req.prompt)}` });
     await expect(call("start_demo", { requestId: "gen_" + "0".repeat(24) })).rejects.toThrow(/not found/i);
     expect(() => chat.startChatBuild(8, { requestId: req.generationId })).toThrow(/not found/i); // another user's request
 
@@ -259,10 +295,14 @@ describe("connector MCP endpoint", () => {
     expect(started.guide).toContain("in French");
     expect(started.guide).toContain("component tree");
     for (let i = 0; i < 50 && (await call("workspace_status", { workspaceId: req.workspaceId })).json.status === "preparing"; i++) await new Promise((r) => setTimeout(r, 50));
+    expect((await call("workspace_status", { workspaceId: req.workspaceId })).json.images).toEqual([{ path: "public/logo.png", bytes: Buffer.from(PNG, "base64").length }]);
+    const seen = await call("view_images", { workspaceId: req.workspaceId, paths: ["public/logo.png", "README.md", "../x.png"] });
+    expect(seen.json.images.map((x: { error?: string }) => x.error ?? "ok")).toEqual(["ok", "not an image", "outside the repository"]);
+    expect(seen.content.filter((c) => c.type === "image")).toEqual([{ type: "image", data: PNG, mimeType: "image/png" }]);
 
     const planned = (await call("save_demo_plan", {
       generationId: req.generationId, workspaceId: req.workspaceId, title: "Something else", detail: "detailed",
-      plan: { product: { name: "Orders", oneLine: "Track orders." }, brand: { accent: "#21356B" }, slides: [
+      plan: { product: { name: "Orders", oneLine: "Track orders." }, brand: { accent: "#21356B", logoSvg: '<img src="repo:public/logo.png" alt="">' }, slides: [
         { id: "Overview", kind: "overview", title: "Home", caption: "Start here.", steps: [{ title: "Orders", caption: "The list.", target: "h1" }], sourceFiles: ["src/App.tsx"] },
         { id: "close", kind: "close", title: "Done", points: [] },
       ] },
@@ -275,10 +315,14 @@ describe("connector MCP endpoint", () => {
     expect(deckHtml).toContain(".pf .app{font-family:Arial");
     expect(deckHtml).toContain("Presented by Ana Diaz · Acme · 12 November 2026"); // the dashboard's settings win over what Claude passes
     expect(deckHtml).toContain("<title>Orders Hub</title>");
+    expect(deckHtml).toContain(`src=\\"data:image/png;base64,${PNG}\\"`); // the logo, inside the deck's JSON data
+    expect(deckHtml).not.toContain("repo:public/logo.png");
 
     if (!launch.resolveChromePath()) return; // browser checks need a local Chrome
-    const screen = await call("save_demo_screen", { deckId: planned.deckId, slideId: "overview", html: '<main class="app"><h1>Orders</h1></main>', steps: [{ title: "Orders", caption: "The list.", spotlight: "h1" }] });
+    const screen = await call("save_demo_screen", { deckId: planned.deckId, slideId: "overview", html: '<main class="app"><img src="/logo.png" alt=""><img src="repo:public/missing.png" alt=""><h1>Orders</h1></main>', steps: [{ title: "Orders", caption: "The list.", spotlight: "h1" }] });
+    expect(screen.json.problems).toContain("image repo:public/missing.png: not found");
     expect(screen.json).toMatchObject({ slideId: "overview", stepsRendered: 1, remainingScreens: [] });
+    expect((await call("get_deck", { deckId: planned.deckId, include: ["html"] })).json.html).toContain(`<img src="data:image/png;base64,${PNG}" alt="">`);
     expect(screen.content.filter((c) => c.type === "image")).toHaveLength(1);
     const done = (await call("finish_demo", { deckId: planned.deckId })).json;
     expect(done.url).toBe(`https://studio.test/dashboard?deck=${planned.deckId}`);
@@ -290,6 +334,35 @@ describe("connector MCP endpoint", () => {
     expect(reports["verification-report.md"]).toContain("Every slide and step renders");
   }, 120_000);
 
+});
+
+describe("repository images", () => {
+  it("embeds repo: and public-folder references, reports missing ones and never leaves the repository", async () => {
+    const { inlineImages, listImages } = await import("@/lib/studio/images");
+    const root = fs.mkdtempSync(`${(await import("node:os")).tmpdir()}/imgs-`);
+    fs.mkdirSync(`${root}/public`, { recursive: true }); fs.mkdirSync(`${root}/src/assets`, { recursive: true });
+    fs.writeFileSync(`${root}/public/logo.png`, Buffer.from(PNG, "base64"));
+    fs.writeFileSync(`${root}/src/assets/hero.svg`, '<svg xmlns="http://www.w3.org/2000/svg"/>');
+    const html = '<img src="repo:public/logo.png"><img src="/logo.png?v=2" srcset="/logo.png 1x, repo:public/logo.png 2x"><div style="background:url(repo:src/assets/hero.svg)"></div>'
+      + '<img src="repo:public/nope.png"><img src="repo:../../etc/x.png"><img src="https://cdn.example/a.png"><a href="/about">About</a>';
+    const { html: out, report } = inlineImages(html, root, 1_000_000);
+    const png = `data:image/png;base64,${PNG}`;
+    expect(out.split(png).length - 1).toBe(4);
+    expect(out).toContain('url("data:image/svg+xml;base64,');
+    expect(out).toContain('src="https://cdn.example/a.png"');
+    expect(out).toContain('href="/about"');
+    expect(out).not.toContain("repo:");
+    expect(report.inlined).toEqual(["public/logo.png", "src/assets/hero.svg"]);
+    expect(report.bytes).toBe(4 * png.length + out.match(/data:image\/svg\+xml;base64,[^"]+/)![0].length);
+    expect(report.missing).toEqual([{ ref: "repo:public/nope.png", reason: "not found" }, { ref: "repo:../../etc/x.png", reason: "outside the repository" }]);
+    expect(inlineImages('<img src="repo:public/logo.png">', root, 10).report.missing[0].reason).toMatch(/size limit/);
+    // Without the workspace nothing is read, but references are still replaced and reported.
+    const gone = inlineImages('<img src="repo:public/logo.png"><img src="/logo.png">', null, 1_000_000);
+    expect(gone.html).not.toMatch(/repo:|"\/logo\.png"/);
+    expect(gone.report.missing.map((m) => m.reason)).toEqual(["the repository is no longer open for this demo", "the repository is no longer open for this demo"]);
+    expect(listImages([{ path: "docs/shot.png", bytes: 5 }, { path: "README.md", bytes: 9 }, { path: "public/logo.png", bytes: 5 }, { path: "src/assets/a.svg", bytes: 5 }]).map((f) => f.path))
+      .toEqual(["public/logo.png", "src/assets/a.svg", "docs/shot.png"]);
+  });
 });
 
 describe("claude.ai install link", () => {

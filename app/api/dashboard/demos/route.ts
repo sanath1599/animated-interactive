@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { apiError, json, requireUser } from "@/lib/api";
-import { DETAILS, createChatRequest } from "@/lib/studio/chat-build";
+import { ASSISTANTS, DETAILS, THEMES, createChatRequest } from "@/lib/studio/chat-build";
 import { sourceSchema } from "@/lib/studio/source-schema";
 
 export const runtime = "nodejs";
@@ -11,6 +11,8 @@ const body = z.object({
   audience: z.string().trim().max(200).optional(),
   details: z.string().trim().max(4000).optional(),
   detail: z.enum(DETAILS).default("standard"),
+  theme: z.enum(THEMES).default("light"),
+  assistant: z.enum(ASSISTANTS).default("claude"),
   focus: z.string().trim().max(2000).optional(),
   exclude: z.string().trim().max(2000).optional(),
   presenter: z.string().trim().max(80).optional(),
@@ -21,7 +23,7 @@ const body = z.object({
 
 /**
  * Sets up a demo on this server (starts fetching the repository and records the build) and returns the
- * one-line prompt that hands it to a claude.ai chat, plus the claude.ai link with that prompt filled in.
+ * one-line prompt that hands it to a Claude or ChatGPT chat, plus the link that opens one with it filled in.
  */
 export async function POST(req: Request) {
   const r = await requireUser(req, { mutating: true });

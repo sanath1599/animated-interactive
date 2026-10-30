@@ -90,3 +90,6 @@ input[type=file] { font: inherit; font-size: .85rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 .theme-btn .ic-moon { display: block; } .theme-btn .ic-sun { display: none; }
 :root[data-theme="dark"] .theme-btn .ic-moon { display: none; } :root[data-theme="dark"] .theme-btn .ic-sun { display: block; }
+.social-link { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; color: hsl(var(--muted-foreground)); transition: color .15s, background-color .15s; }
+.social-link:hover { color: hsl(var(--foreground)); background: hsl(var(--secondary)); }
+.social-icon { width: 1.05rem; height: 1.05rem; flex: none; }

@@ -1,27 +1,19 @@
-import fs from "node:fs";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { getDb } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import { redact } from "@/lib/security/redact";
-import { listRepos } from "@/lib/github/client";
-import { githubSessionFor } from "@/lib/github/user-token";
-import { listRemoteBranches, parseGitUrl } from "@/lib/sources/git";
-import { credentialAuth, credentialForHost, listCredentials } from "@/lib/sources/credentials";
-import { getWorkspace, listWorkspaces, openWorkspace, readFiles, searchCode, workspaceSummary } from "./workspaces";
-import { appendChunk, beginUpload, uploadWhole } from "./uploads";
-import { deckHtml, deckReports, deckState, deckUrl, getDeck, listDecks, saveDeck, REPORT_NAMES } from "./decks";
-import { MAX_VIEWS, verifyDeck, type VerifyView } from "./verify";
-import { deckDir } from "./decks";
-import { GENERATION_KINDS, GENERATION_STATUSES, isGenerationId, listGenerations, recordClaudeCalls, recordGeneration, recordToolCall } from "./usage";
+import { getWorkspace, openWorkspace, readFiles, repoDir, searchCode, workspaceSummary } from "./workspaces";
+import { VIEWABLE, readImage } from "./images";
+import { deckHtml, deckReports, deckState, deckUrl, getDeck } from "./decks";
+import { GENERATION_KINDS, GENERATION_STATUSES, isGenerationId, recordGeneration, recordToolCall } from "./usage";
 import { sourceSchema } from "./source-schema";
-import { DETAILS, finishChatBuild, saveChatPlan, saveChatScreen, saveChatStyles, startChatBuild } from "./chat-build";
+import { DETAILS, THEMES, finishChatBuild, saveChatPlan, saveChatScreen, saveChatStyles, startChatBuild } from "./chat-build";
 
 /**
- * The Studio connector: tools the claude.ai artifact, or Claude in a claude.ai chat, calls with the user's
- * own connector grant. The server does the heavy lifting (fetching repositories, reading files, assembling
- * and rendering decks in Chromium); all Claude calls happen in claude.ai, on the user's Claude plan.
+ * The Studio connector: tools Claude or ChatGPT calls from a chat with the user's own connector grant.
+ * The server does the heavy lifting (fetching repositories, reading files, assembling and rendering decks
+ * in Chromium); all model calls happen in the user's chat, on their own plan.
  * Nothing here calls Claude.
  */
 
@@ -54,92 +46,10 @@ export function createStudioServer(userId: number): McpServer {
     verifying.add(userId);
     try { return await fn(); } finally { verifying.delete(userId); }
   };
-  const login = () => (getDb().prepare("SELECT login FROM users WHERE id=?").get(userId) as { login: string } | undefined)?.login ?? "";
-
-  server.registerTool("list_sources", {
-    title: "List repository sources",
-    description: "Returns the GitHub repositories the user installed the app on, their saved Azure DevOps/GitLab/Bitbucket hosts (never the tokens), recent workspaces and recent decks.",
-    annotations: READ,
-  }, guard("list_sources", async () => {
-    const session = await githubSessionFor(userId, login());
-    let github: { repos: unknown[]; error?: string };
-    try {
-      github = session ? { repos: (await listRepos(session)).filter((r) => !r.archived).slice(0, 300).map((r) => ({ fullName: r.fullName, defaultBranch: r.defaultBranch, private: r.visibility === "private", description: r.description })) }
-        : { repos: [], error: "Sign in to the web app with GitHub to list repositories." };
-    } catch (e) { github = { repos: [], error: redact(e instanceof Error ? e.message : String(e)) }; }
-    return ok({
-      user: login(),
-      appUrl: getConfig().appUrl,
-      manageCredentialsUrl: `${getConfig().appUrl}/dashboard/setup#access`,
-      dashboardUrl: `${getConfig().appUrl}/dashboard`,
-      github,
-      credentials: listCredentials(userId).map((c) => ({ id: c.id, provider: c.provider, host: c.host, label: c.label })),
-      workspaces: listWorkspaces(userId, 8).map((w) => ({ id: w.id, label: w.label, branch: w.branch, status: w.status, createdAt: w.createdAt })),
-      decks: listDecks(userId, 12).map((d) => ({ id: d.id, title: d.title, label: d.label, bytes: d.bytes, updatedAt: d.updatedAt, resumable: d.hasState })),
-      generations: listGenerations(userId, 12).map((g) => ({ id: g.id, kind: g.kind, status: g.status, title: g.title, label: g.label, deckId: g.deckAvailable ? g.deckId : null, startedAt: g.startedAt, claudeCalls: g.claudeCalls })),
-    });
-  }));
-
-  server.registerTool("list_branches", {
-    title: "List branches",
-    description: "Lists branches of a GitHub repository (owner/name) or an Azure DevOps/GitLab/Bitbucket URL. Default branch first.",
-    inputSchema: { source: sourceSchema },
-    annotations: READ,
-  }, guard("list_branches", async ({ source }) => {
-    if (source.type === "github") {
-      const session = await githubSessionFor(userId, login());
-      if (!session) throw new Error("Sign in to the web app with GitHub first.");
-      const repo = (await listRepos(session)).find((r) => r.fullName.toLowerCase() === source.repo.toLowerCase());
-      if (!repo) throw new Error("Repository not found in your installations.");
-      const { listBranches } = await import("@/lib/github/client");
-      const branches = await listBranches(session, repo.owner, repo.name, repo.installationId);
-      const names = branches.map((b) => b.name);
-      return ok({ defaultBranch: repo.defaultBranch, branches: [repo.defaultBranch, ...names.filter((n) => n !== repo.defaultBranch)] });
-    }
-    if (source.type === "upload") return ok({ defaultBranch: null, branches: [] });
-    const ref = parseGitUrl(source.url);
-    if (!ref) throw new Error("Unsupported repository URL. Use an https URL from Azure DevOps, GitLab or Bitbucket.");
-    const found = source.credentialId ? credentialAuth(userId, source.credentialId) : credentialForHost(userId, ref.host);
-    const r = await listRemoteBranches(ref, found?.auth ?? null);
-    return ok({ label: ref.label, urlBranch: ref.branch, credential: found ? found.cred.label : null, ...r });
-  }));
-
-  server.registerTool("upload_archive", {
-    title: "Upload a zipped repository",
-    description: "Uploads a .zip of a project folder. Send the whole archive as `archive` (base64) when it fits; otherwise call repeatedly with `chunk` + `offset` (start with offset 0 and no uploadId, then pass the returned uploadId). Returns uploadId and bytes received.",
-    inputSchema: {
-      name: z.string().min(1).max(120),
-      archive: z.string().max(24_000_000).optional().describe("Whole archive, base64"),
-      totalBytes: z.number().int().positive().optional().describe("Archive size in bytes (chunked mode)"),
-      uploadId: z.string().max(40).optional(),
-      offset: z.number().int().min(0).optional(),
-      chunk: z.string().max(1_000_000).optional().describe("Base64 chunk (chunked mode)"),
-    },
-    annotations: WRITE,
-  }, guard("upload_archive", async (a) => {
-    if (a.archive) {
-      const id = uploadWhole(userId, a.name, a.archive);
-      return ok({ uploadId: id, complete: true });
-    }
-    if (!a.chunk || a.offset === undefined) throw new Error("Send either archive, or chunk with offset.");
-    const id = a.uploadId ?? beginUpload(userId, a.name, a.totalBytes ?? 0);
-    const r = appendChunk(userId, id, a.offset, a.chunk);
-    return ok({ uploadId: id, ...r, complete: r.received === r.total });
-  }));
-
-  server.registerTool("open_workspace", {
-    title: "Fetch a repository",
-    description: "Starts fetching a repository into a private, read-only workspace (shallow clone or uploaded zip), with secret files removed. Returns a workspaceId immediately; poll workspace_status until status is ready.",
-    inputSchema: { source: sourceSchema },
-    annotations: WRITE,
-  }, guard("open_workspace", async ({ source }) => {
-    const ws = await openWorkspace(userId, source);
-    return ok({ workspaceId: ws.id, label: ws.label, branch: ws.branch, status: ws.status });
-  }));
 
   server.registerTool("workspace_status", {
     title: "Workspace status",
-    description: "Status of a workspace. When ready, includes the file tree (paths and sizes), README text, stack manifests, and the files excluded as secret-like.",
+    description: "Status of a workspace. When ready, includes the file tree (paths and sizes), README text, stack manifests, the repository's image files (public/ first) and the files excluded as secret-like.",
     inputSchema: { workspaceId: z.string().max(40) },
     annotations: READ,
   }, guard("workspace_status", async ({ workspaceId }) => {
@@ -160,6 +70,30 @@ export function createStudioServer(userId: number): McpServer {
     return ok({ files: readFiles(ws, paths, maxBytesPerFile) });
   }));
 
+  server.registerTool("view_images", {
+    title: "View repository images",
+    description: "Returns up to 6 PNG, JPEG, GIF or WebP files from a ready workspace as images, so you can see screenshots, mockups, logos and illustrations the product ships with. Read SVG files with read_files instead. To put a repository image in a deck, write repo:<path> as its src or CSS url().",
+    inputSchema: { workspaceId: z.string().max(40), paths: z.array(z.string().max(500)).min(1).max(6) },
+    annotations: READ,
+  }, guard("view_images", async ({ workspaceId, paths }) => {
+    const ws = getWorkspace(workspaceId, userId);
+    if (!ws || ws.status !== "ready") throw new Error("Workspace not found or not ready.");
+    const root = repoDir(ws.id);
+    const listed: { path: string; bytes?: number; error?: string }[] = [];
+    const images: CallToolResult["content"] = [];
+    let total = 0;
+    for (const p of paths) {
+      const img = readImage(root, p);
+      if ("error" in img) { listed.push({ path: p, error: img.error }); continue; }
+      if (!VIEWABLE.has(img.mime)) { listed.push({ path: p, error: "SVG and other formats: read them with read_files" }); continue; }
+      if (total + img.data.length > 6_000_000) { listed.push({ path: p, error: "Response size limit reached; request it in a later call." }); continue; }
+      total += img.data.length;
+      listed.push({ path: p, bytes: img.data.length });
+      images.push({ type: "image", data: img.data.toString("base64"), mimeType: img.mime });
+    }
+    return { content: [{ type: "text", text: JSON.stringify({ images: listed, note: "Images follow in this order, skipping the ones with an error." }) }, ...images] };
+  }));
+
   server.registerTool("search_code", {
     title: "Search code",
     description: "Case-insensitive search across the workspace's text files. Literal by default; set regex=true for a regular expression. Optional pathGlob such as 'src/**/*.tsx'.",
@@ -169,51 +103,6 @@ export function createStudioServer(userId: number): McpServer {
     const ws = getWorkspace(workspaceId, userId);
     if (!ws || ws.status !== "ready") throw new Error("Workspace not found or not ready.");
     return ok(searchCode(ws, pattern, { regex, glob: pathGlob, maxResults }));
-  }));
-
-  server.registerTool("save_deck", {
-    title: "Save a deck",
-    description: "Creates or updates a deck: the generated HTML, the artifact's build state (for resuming and revising), and the verification/evidence reports (Markdown). Omitted fields are left unchanged. Returns the deckId, size, any external references found, and a link to the deck in the web app.",
-    inputSchema: {
-      deckId: z.string().max(40).optional(),
-      workspaceId: z.string().max(40),
-      title: z.string().min(1).max(120),
-      html: z.string().max(3_200_000).optional(),
-      state: z.unknown().optional(),
-      reports: z.object(Object.fromEntries(REPORT_NAMES.map((n) => [n, z.string().max(200_000).optional()]))).optional(),
-    },
-    annotations: WRITE,
-  }, guard("save_deck", async (a) => {
-    const ws = getWorkspace(a.workspaceId, userId);
-    if (!ws) throw new Error("Workspace not found.");
-    const { deck, externalReferences } = saveDeck(userId, { ...a, label: ws.label, reports: a.reports as Record<string, string> | undefined });
-    return ok({ deckId: deck.id, bytes: deck.bytes, externalReferences, url: deckUrl(deck.id) });
-  }));
-
-  server.registerTool("verify_deck", {
-    title: "Verify a deck in Chromium",
-    description: `Renders the saved deck in headless Chromium with the network blocked, once per view (at most ${MAX_VIEWS}): reports console/page errors, blocked requests, clipped or overflowing elements reported by the deck engine, and returns a JPEG screenshot per view as image content.`,
-    inputSchema: {
-      deckId: z.string().max(40),
-      views: z.array(z.object({ id: z.string().max(48), hash: z.string().max(120), width: z.number().int(), height: z.number().int(), theme: z.enum(["light", "dark"]).optional() })).min(1).max(MAX_VIEWS),
-      screenshots: z.boolean().optional().describe("Return screenshots as images (default true)"),
-    },
-    annotations: READ,
-  }, guard("verify_deck", async ({ deckId, views, screenshots }) => {
-    const deck = getDeck(deckId, userId);
-    if (!deck) throw new Error("Deck not found.");
-    return withVerifyLock(async () => {
-      const r = await verifyDeck(deckId, views as VerifyView[]);
-      const content: CallToolResult["content"] = [{ type: "text", text: JSON.stringify(r) }];
-      if (screenshots !== false) {
-        for (const v of r.results) {
-          if (!v.screenshot) continue;
-          const buf = fs.readFileSync(deckDir(deckId, "verify", v.screenshot));
-          content.push({ type: "image", data: buf.toString("base64"), mimeType: "image/jpeg" });
-        }
-      }
-      return { content };
-    });
   }));
 
   server.registerTool("get_deck", {
@@ -258,30 +147,6 @@ export function createStudioServer(userId: number): McpServer {
     return ok({ generationId: id });
   }));
 
-  server.registerTool("record_usage", {
-    title: "Record Claude usage",
-    description: "Adds the Claude calls a build made on the user's plan (sizes measured in the page, not billed amounts). Safe to resend: calls are deduplicated by callId.",
-    inputSchema: {
-      generationId: z.string().max(40),
-      calls: z.array(z.object({
-        callId: z.string().min(1).max(40),
-        stage: z.string().max(80),
-        tier: z.string().max(20),
-        promptBytes: z.number().int().min(0).max(50_000_000),
-        outputChars: z.number().int().min(0).max(50_000_000),
-        images: z.number().int().min(0).max(100),
-        ms: z.number().int().min(0).max(86_400_000),
-        ok: z.boolean(),
-        errorCode: z.string().max(40).optional(),
-        ts: z.number().int().optional(),
-      })).min(1).max(50),
-    },
-    annotations: WRITE,
-  }, guard("record_usage", async ({ generationId, calls }) => {
-    if (!isGenerationId(generationId)) throw new Error("Generation not found.");
-    return ok({ recorded: recordClaudeCalls(userId, generationId, calls) });
-  }));
-
   /* ---- Building from a claude.ai chat: Claude follows the guide start_demo returns ---- */
   const cfgSchema = {
     title: z.string().min(1).max(120).describe("Presentation title"),
@@ -291,6 +156,7 @@ export function createStudioServer(userId: number): McpServer {
     focus: z.string().max(2000).optional(), exclude: z.string().max(2000).optional(),
     presenter: z.string().max(80).optional(), organization: z.string().max(80).optional(), date: z.string().max(40).optional(),
     language: z.string().max(40).optional().describe("Language of slide titles and captions (default English)"),
+    theme: z.enum(THEMES).optional().describe("The one colour mode the deck is built in: light (default) or dark. The deck has no theme switch."),
   };
 
   server.registerTool("start_demo", {
@@ -356,7 +222,7 @@ export function createStudioServer(userId: number): McpServer {
 
   server.registerTool("finish_demo", {
     title: "Finish the demo",
-    description: "Checks the slides not yet rendered plus dark mode and phone width, writes the verification and evidence reports, marks the build completed and returns the link to the deck.",
+    description: "Checks the slides not yet rendered plus phone width, writes the verification and evidence reports, marks the build completed and returns the link to the deck.",
     inputSchema: { deckId: z.string().max(40) },
     annotations: WRITE,
   }, guard("finish_demo", async ({ deckId }) => withVerifyLock(async () => ok(await finishChatBuild(userId, { deckId })))));

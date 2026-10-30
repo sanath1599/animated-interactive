@@ -6,8 +6,7 @@ import { getConfig } from "@/lib/config";
 import { ARCHIVE_LIMITS } from "@/lib/sources/archive";
 
 /**
- * Zip uploads from the artifact. Small archives arrive whole (a connector file argument);
- * larger ones arrive as ordered base64 chunks, since one connector call carries at most 1 MiB.
+ * Zip uploads from the dashboard's New demo form, stored until a workspace is opened from them.
  */
 const UP_RE = /^up_[a-f0-9]{24}$/;
 const file = (id: string) => path.join(getConfig().dataDir, "studio", "uploads", `${id}.zip`);

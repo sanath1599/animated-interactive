@@ -6,7 +6,13 @@ import { Select } from "../ui/select";
 import type { Credential } from "./access-tokens";
 
 interface Repo { fullName: string; owner: string; name: string; installationId: number; defaultBranch: string; archived: boolean; visibility: string }
-interface Created { generationId: string; label: string; branch: string; prompt: string; claudeUrl: string }
+type Assistant = "claude" | "chatgpt";
+interface Created { generationId: string; label: string; branch: string; prompt: string; assistant: Assistant; chatUrl: string }
+const ASSISTANTS: { id: Assistant; name: string }[] = [{ id: "claude", name: "Claude" }, { id: "chatgpt", name: "ChatGPT" }];
+const NEXT: Record<Assistant, string[]> = {
+  claude: ["Pick Opus or Sonnet in the new claude.ai chat and press send.", "If claude.ai asks to use the connector, choose Always allow.", "Progress and the finished demo appear below."],
+  chatgpt: ["ChatGPT opens with your request. If it doesn't use the Animated Technical Interactive plugin, type @, choose it, and send the request again (it's on your clipboard).", "Approve the plugin's actions when ChatGPT asks.", "Progress and the finished demo appear below."],
+};
 type Tab = "github" | "git" | "zip";
 /** The proxy in front of the app accepts request bodies up to 55 MB. */
 const MAX_ZIP = 50 * 1024 * 1024;
@@ -20,16 +26,30 @@ type Detail = (typeof DETAIL)[number]["id"];
 const LANGUAGES = ["English", "Arabic", "Chinese (Simplified)", "Dutch", "French", "German", "Hindi", "Italian", "Japanese", "Korean", "Portuguese", "Spanish"].map((l) => ({ value: l, label: l }));
 const STEPS = ["Code", "Presentation", "Details", "Review"] as const;
 
-const EMPTY = { title: "", detail: "standard" as Detail, audience: "", language: "English", focus: "", exclude: "", details: "", presenter: "", organization: "", date: "" };
+const THEMES = [{ id: "light", name: "Light" }, { id: "dark", name: "Dark" }] as const;
+type Theme = (typeof THEMES)[number]["id"];
+
+const EMPTY = { title: "", detail: "standard" as Detail, theme: "light" as Theme, audience: "", language: "English", focus: "", exclude: "", details: "", presenter: "", organization: "", date: "" };
 type Form = typeof EMPTY;
+// The cover byline is usually the same person and company every time, so the last values used are kept in this browser.
+const BYLINE_KEY = "nd-byline";
+const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time, the <input type="date"> format
+function initialForm(): Form {
+  let saved: { presenter?: unknown; organization?: unknown } = {};
+  try { saved = JSON.parse(localStorage.getItem(BYLINE_KEY) ?? "{}") ?? {}; } catch { /* storage blocked or corrupt: start blank */ }
+  const str = (v: unknown) => (typeof v === "string" ? v.slice(0, 80) : "");
+  return { ...EMPTY, presenter: str(saved.presenter), organization: str(saved.organization), date: today() };
+}
 const fmtDate = (iso: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) : "");
 
 /**
- * Four short steps here, then claude.ai: the server starts fetching the code as soon as the request is
- * made, and a new chat opens with a one-line prompt typed in. Claude does the rest through the connector.
+ * Four short steps here, then Claude or ChatGPT: the server starts fetching the code as soon as the request is
+ * made, and a new chat opens with a one-line prompt in it. The assistant does the rest through the connector.
  */
-export function NewDemo({ credentials, onCreated }: { credentials: Credential[]; onCreated: () => Promise<void> }) {
+export function NewDemo({ credentials, connected, onCreated }: { credentials: Credential[]; connected: string[]; onCreated: () => Promise<void> }) {
   const [step, setStep] = useState(0);
+  // Default to an assistant that is already connected, Claude first.
+  const [assistant, setAssistant] = useState<Assistant>(!connected.includes("claude") && connected.includes("chatgpt") ? "chatgpt" : "claude");
   const [tab, setTab] = useState<Tab>("github");
   const [repos, setRepos] = useState<Repo[] | null>(null);
   const [repoError, setRepoError] = useState<string | null>(null);
@@ -39,7 +59,7 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
   const [branch, setBranch] = useState("");
   const [git, setGit] = useState({ url: "", branch: "", credentialId: "" });
   const [zip, setZip] = useState<File | null>(null);
-  const [form, setForm] = useState<Form>(EMPTY);
+  const [form, setForm] = useState<Form>(initialForm);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -62,12 +82,12 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
   const sourceReady = tab === "github" ? Boolean(repo) : tab === "git" ? /^https:\/\/\S+$/.test(git.url.trim()) : Boolean(zip && zip.size <= MAX_ZIP);
   const source = tab === "github" ? (repo ? `${repo.fullName}, ${branch}` : "") : tab === "git" ? git.url.trim().replace(/^https:\/\//, "") + (git.branch ? `, ${git.branch}` : "") : zip?.name ?? "";
   const canGo = [sourceReady, form.title.trim().length > 0, true, true];
-  const extras = Object.entries(form).some(([k, v]) => !["title", "detail", "language"].includes(k) && v) || form.language !== "English";
+  const extras = Object.entries(form).some(([k, v]) => !["title", "detail", "theme", "language"].includes(k) && v) || form.language !== "English";
 
   async function submit() {
     if (busy) return;
     setError(null);
-    // Open the tab now, while the click still counts as a user gesture; it is pointed at claude.ai once the server answers.
+    // Open the tab now, while the click still counts as a user gesture; it is pointed at the chat once the server answers.
     const win = window.open("", "_blank");
     try {
       let src: unknown;
@@ -81,10 +101,13 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
       setBusy("Preparing…");
       const c = await api<Created>("/api/dashboard/demos", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: src, ...form, date: fmtDate(form.date) }),
+        body: JSON.stringify({ source: src, ...form, assistant, date: fmtDate(form.date) }),
       });
+      try { localStorage.setItem(BYLINE_KEY, JSON.stringify({ presenter: form.presenter.trim(), organization: form.organization.trim() })); } catch { /* not saved: next form starts blank */ }
       setCreated(c);
-      if (win) { win.opener = null; win.location.href = c.claudeUrl; }
+      // ChatGPT may need the request pasted again after its plugin is picked with @, so keep it on the clipboard.
+      if (assistant === "chatgpt") navigator.clipboard?.writeText(c.prompt).catch(() => {});
+      if (win) { win.opener = null; win.location.href = c.chatUrl; }
       await onCreated();
     } catch (err) {
       win?.close();
@@ -92,20 +115,16 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
     } finally { setBusy(null); }
   }
 
-  function reset() { setCreated(null); setStep(0); setForm(EMPTY); setRepo(null); setZip(null); setFilter(""); setGit({ url: "", branch: "", credentialId: "" }); }
+  function reset() { setCreated(null); setStep(0); setForm(initialForm()); setRepo(null); setZip(null); setFilter(""); setGit({ url: "", branch: "", credentialId: "" }); }
 
   if (created) {
     return (
       <section className="nd nd-sent" aria-live="polite">
         <div className="nd-sent-copy">
-          <h2>Your request is waiting in claude.ai</h2>
-          <ol className="nd-next">
-            <li>Pick Opus or Sonnet in the new chat and press send.</li>
-            <li>If claude.ai asks to use the connector, choose Always allow.</li>
-            <li>Progress and the finished demo appear below.</li>
-          </ol>
+          <h2>Your request is waiting in {created.assistant === "chatgpt" ? "ChatGPT" : "claude.ai"}</h2>
+          <ol className="nd-next">{NEXT[created.assistant].map((t) => <li key={t}>{t}</li>)}</ol>
           <div className="row">
-            <a className="btn primary" href={created.claudeUrl} target="_blank" rel="noreferrer">Open the chat again</a>
+            <a className="btn primary" href={created.chatUrl} target="_blank" rel="noreferrer">Open the chat again</a>
             <CopyText text={created.prompt} />
             <button className="btn ghost" type="button" onClick={reset}>Start another demo</button>
           </div>
@@ -218,6 +237,15 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
                   ))}
                 </div>
               </div>
+              <div role="radiogroup" aria-labelledby="nd-theme" className="nd-stack">
+                <span id="nd-theme" className="nd-q">Colour mode</span>
+                <div className="nd-tabs">
+                  {THEMES.map((t) => (
+                    <button key={t.id} type="button" role="radio" aria-checked={form.theme === t.id} className={form.theme === t.id ? "on" : ""} onClick={() => setForm({ ...form, theme: t.id })}>{t.name}</button>
+                  ))}
+                </div>
+                <p className="hint">The deck is built in this mode only, with no light/dark switch for viewers.</p>
+              </div>
             </>
           )}
 
@@ -242,7 +270,7 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
                 </div>
               </div>
               <div>
-                <label htmlFor="nd-notes">Notes for Claude</label>
+                <label htmlFor="nd-notes">Notes for the assistant</label>
                 <textarea id="nd-notes" rows={2} maxLength={4000} value={form.details} onChange={set("details")} placeholder="Slide order, the story to tell, sample data to use" />
               </div>
               <div className="nd-grid nd-grid3">
@@ -269,9 +297,23 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
                 <div><dt>Code</dt><dd>{source}</dd><button type="button" className="nd-edit" onClick={() => setStep(0)}>Change</button></div>
                 <div><dt>Title</dt><dd>{form.title}</dd><button type="button" className="nd-edit" onClick={() => setStep(1)}>Change</button></div>
                 <div><dt>Coverage</dt><dd>{DETAIL.find((d) => d.id === form.detail)!.name}, {DETAIL.find((d) => d.id === form.detail)!.slides.toLowerCase()}</dd><button type="button" className="nd-edit" onClick={() => setStep(1)}>Change</button></div>
+                <div><dt>Colour mode</dt><dd>{form.theme === "dark" ? "Dark" : "Light"}</dd><button type="button" className="nd-edit" onClick={() => setStep(1)}>Change</button></div>
                 <div><dt>Extras</dt><dd>{extras ? [form.audience && `for ${form.audience}`, form.language !== "English" && `in ${form.language}`, form.focus && "focus areas", form.exclude && "things to leave out", form.details && "notes", (form.presenter || form.organization || form.date) && "cover details"].filter(Boolean).join(", ") : "None"}</dd><button type="button" className="nd-edit" onClick={() => setStep(2)}>Change</button></div>
               </dl>
-              <p className="small muted">A new claude.ai chat opens with your request typed in. Pick Opus or Sonnet there and press send; if it asks to use the connector, choose Always allow.</p>
+              <div role="radiogroup" aria-labelledby="nd-asst" className="nd-stack">
+                <span id="nd-asst" className="nd-q">Build with</span>
+                <div className="nd-tabs">
+                  {ASSISTANTS.map((a) => (
+                    <button key={a.id} type="button" role="radio" aria-checked={assistant === a.id} className={assistant === a.id ? "on" : ""} onClick={() => setAssistant(a.id)}>
+                      {a.name}{!connected.includes(a.id) && <span className="muted"> (not connected)</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {!connected.includes(assistant) && <p className="small bad-text">{assistant === "chatgpt" ? "ChatGPT" : "Claude"} isn&apos;t connected yet. <Link href="/dashboard/setup">Connect it on the setup page</Link> first.</p>}
+              <p className="small muted">{assistant === "chatgpt"
+                ? "A new ChatGPT chat opens with your request. Choose your most capable model, make sure the Animated Technical Interactive plugin is on, and approve its actions when asked."
+                : "A new claude.ai chat opens with your request typed in. Pick Opus or Sonnet there and press send; if it asks to use the connector, choose Always allow."}</p>
             </>
           )}
         </div>
@@ -280,7 +322,7 @@ export function NewDemo({ credentials, onCreated }: { credentials: Credential[];
           {step > 0 ? <button className="btn ghost" type="button" onClick={() => setStep(step - 1)}>Back</button> : <span />}
           {step < 3
             ? <button className="btn primary" type="button" disabled={!canGo[step]} onClick={() => setStep(step + 1)}>{step === 2 && !extras ? "Skip" : "Continue"}</button>
-            : <button className="btn primary lg" type="button" disabled={Boolean(busy)} onClick={submit}>{busy ?? "Open in Claude"}</button>}
+            : <button className="btn primary lg" type="button" disabled={Boolean(busy)} onClick={submit}>{busy ?? `Open in ${assistant === "chatgpt" ? "ChatGPT" : "Claude"}`}</button>}
         </div>
       </div>
 
@@ -295,7 +337,7 @@ function Cover({ form, source }: { form: Form; source: string }) {
   const d = DETAIL.find((x) => x.id === form.detail)!;
   return (
     <aside className="nd-cover" aria-label="Cover slide preview">
-      <div className="nd-slide">
+      <div className={`nd-slide ${form.theme}`}>
         <span className="nd-slide-src">{source || "your repository"}</span>
         <p className={`nd-slide-title ${form.title ? "" : "ph"}`}>{form.title || "Your presentation title"}</p>
         {byline && <p className="nd-slide-by">{byline}</p>}

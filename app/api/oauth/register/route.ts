@@ -2,7 +2,7 @@ import { OAuthError, registerClient } from "@/lib/oauth/server";
 
 export const runtime = "nodejs";
 
-// Dynamic client registration (RFC 7591) for public clients such as claude.ai's connector.
+// Dynamic client registration (RFC 7591) for public clients such as the claude.ai and ChatGPT connectors.
 export async function POST(req: Request) {
   try {
     const c = registerClient(await req.json().catch(() => null));

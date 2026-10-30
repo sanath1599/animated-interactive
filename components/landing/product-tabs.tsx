@@ -1,9 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
 
-const TABS = ["Code", "Presentation", "Claude", "Result"] as const;
+const TABS = ["Code", "Presentation", "Chat", "Result"] as const;
 type Tab = (typeof TABS)[number];
-const URLS: Record<Tab, string> = { Code: "app.antm.ai/dashboard", Presentation: "app.antm.ai/dashboard", Claude: "claude.ai/new", Result: "app.antm.ai/dashboard" };
+const URLS: Record<Tab, string> = { Code: "app.antm.ai/dashboard", Presentation: "app.antm.ai/dashboard", Chat: "claude.ai or chatgpt.com", Result: "app.antm.ai/dashboard" };
 
 const REPOS = [
   { n: "analytics-portal", o: "northwind", v: "Private" },
@@ -42,7 +42,7 @@ function Panel({ tab }: { tab: Tab }) {
         <div className="pp-cover"><span className="small muted">northwind/analytics-portal, main</span><b>Northwind quarterly review</b><span className="small muted">Presented by Dana Reyes · Northwind · 12 November 2026</span><i>Start</i></div>
       </div>
     );
-  if (tab === "Claude")
+  if (tab === "Chat")
     return (
       <div className="pp">
         <div className="pp-msg">Build my interactive demo “Northwind quarterly review” with the Animated Technical Interactive connector: call start_demo with requestId gen_7f3a… and follow the guide it returns.</div>
@@ -51,7 +51,7 @@ function Panel({ tab }: { tab: Tab }) {
             <div key={t} className="pp-tool"><span className="chip ok">{t}</span><span className="small muted">{d}</span></div>
           ))}
         </div>
-        <p className="small muted">Runs on your own Claude plan. Set the connector&apos;s tools to Always allow once and builds run straight through.</p>
+        <p className="small muted">Runs in Claude or ChatGPT on your own plan. Let the connector&apos;s tools run without asking and builds go straight through.</p>
       </div>
     );
   return (

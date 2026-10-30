@@ -10,10 +10,10 @@ interface Assembler {
   scopeCss(css: string, scope: string): string;
   cleanHtml(html: string): string;
   assembleDeck(o: unknown): string;
-  verificationViews(plan: unknown, gen: unknown): { id: string; hash: string; width: number; height: number; theme: "light" | "dark" }[];
+  verificationViews(plan: unknown, gen: unknown, theme?: "light" | "dark"): { id: string; hash: string; width: number; height: number; theme: "light" | "dark" }[];
 }
 let A: Assembler;
-const dir = path.resolve(import.meta.dirname, "../artifact");
+const dir = path.resolve(import.meta.dirname, "../deck");
 
 beforeAll(() => {
   tempDataDir();
@@ -62,6 +62,19 @@ describe("deck assembler", () => {
   it("strips scripts, inline handlers and external loads from generated markup", () => {
     const out = A.cleanHtml('<img src="https://x.test/a.png"><button onclick="steal()">b</button><script>x()</script><link rel="stylesheet" href="//cdn/x.css">');
     expect(out).not.toMatch(/script|onclick|https:|<link/);
+  });
+
+  it("builds the deck in one colour mode, with no theme switch", () => {
+    const base = { runtimeCss: "", runtimeJs: "", title: "Orders Hub", plan, foundation: { css: "" }, slides: gen };
+    const dark = A.assembleDeck({ ...base, theme: "dark" });
+    expect(dark).toMatch(/^<!doctype html>\n<html lang="en" data-theme="dark">/);
+    expect(dark).not.toContain("dk-theme");
+    const light = A.assembleDeck(base);
+    expect(light).toMatch(/<html lang="en">/);
+    const views = A.verificationViews(plan, gen, "dark");
+    expect(new Set(views.map((v) => v.theme))).toEqual(new Set(["dark"]));
+    expect(views.some((v) => v.hash.includes("theme="))).toBe(false);
+    expect(views.filter((v) => v.width < 600)).toHaveLength(3);
   });
 
   it("produces a deck that renders cleanly in headless Chrome at every step", async () => {

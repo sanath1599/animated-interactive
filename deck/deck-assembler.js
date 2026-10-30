@@ -1,5 +1,5 @@
 /* Builds a self-contained deck HTML file from the plan and the generated slides. Pure functions, loaded by
-   the artifact page and by the Node tests (exposed as globalThis.DeckAssembler). */
+   lib/studio/chat-build.ts and by the Node tests (exposed as globalThis.DeckAssembler). */
 (function (root) {
   "use strict";
 
@@ -67,7 +67,8 @@
   }
 
   /**
-   * opts: { runtimeCss, runtimeJs, title, plan, foundation: {css}, slides: {id: {html, css, script, steps}} }
+   * opts: { runtimeCss, runtimeJs, title, plan, foundation: {css}, slides: {id: {html, css, script, steps}},
+   *         byline, theme: "light"|"dark" (the only mode the deck shows) }
    * plan.slides: ordered [{id, kind: welcome|overview|area|play|close, eyebrow, title, caption, navLabel, steps, figures, points, hint}]
    */
   function assembleDeck(opts) {
@@ -83,7 +84,7 @@
       logo: brand.logoSvg ? cleanHtml(brand.logoSvg) : "",
       dataNote: plan.dataNote || "",
       byline: String(opts.byline || "").slice(0, 200),
-      productDark: Boolean(brand.supportsDark),
+      theme: opts.theme === "dark" ? "dark" : "light",
       playScreens: screens.filter(function (s) { return gen[s.id]; }).map(function (s) { return { id: s.id, label: s.navLabel || s.title }; }),
       slides: plan.slides.filter(function (s) { return (s.kind !== "overview" && s.kind !== "area") || gen[s.id]; }).map(function (s) {
         var g = gen[s.id] || {};
@@ -112,32 +113,31 @@
       return "window.__dkScripts[" + JSON.stringify(s.id) + "]=function(root,api){\"use strict\";\n" + scriptBody(gen[s.id].script) + "\n};";
     }).join("\n");
 
-    return "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+    return "<!doctype html>\n<html lang=\"en\"" + (data.theme === "dark" ? ' data-theme="dark"' : "") + "><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
       "<title>" + escText(opts.title) + "</title>\n<style>\n" + css.join("\n") + "\n</style></head>\n<body>\n" +
       '<div id="dk-viewport"><div id="dk-stage" role="application" aria-roledescription="presentation">' +
       '<div class="dk-bar" id="dk-bar"><button class="dk-btn" id="dk-back" type="button">← Back</button>' +
       '<div class="dk-progress" aria-hidden="true"><i></i></div><span class="dk-count" id="dk-count"></span>' +
-      '<button class="dk-btn" id="dk-theme" type="button">Dark</button><button class="dk-btn" id="dk-fs" type="button" title="Full screen (F)">Full screen</button>' +
+      '<button class="dk-btn" id="dk-fs" type="button" title="Full screen (F)">Full screen</button>' +
       '<button class="dk-btn primary" id="dk-next" type="button">Next →</button></div></div></div>' +
       '<div class="dk-rotate">Rotate your device for a larger view.</div>\n' + templates +
       '\n<script type="application/json" id="dk-data">' + jsonForScript(data) + "</script>\n" +
       "<script>window.__dkScripts={};\n" + scripts + "\n</script>\n<script>\n" + scriptBody(opts.runtimeJs) + "\n</script>\n</body></html>";
   }
 
-  /** Views for headless verification: every slide and step at 1280×720, plus dark and phone-width samples. */
-  function verificationViews(plan, gen) {
+  /** Views for headless verification: every slide and step at 1280×720 in the deck's one colour mode, plus phone-width samples. */
+  function verificationViews(plan, gen, theme) {
+    var mode = theme === "dark" ? "dark" : "light";
     var views = [], idx = 0;
     plan.slides.filter(function (s) { return (s.kind !== "overview" && s.kind !== "area") || gen[s.id]; }).forEach(function (s) {
       idx++;
       var g = gen[s.id] || {}, steps = (s.kind === "overview" || s.kind === "area") ? Math.max(1, (g.steps || s.steps || []).length) : 1;
-      for (var n = 1; n <= steps; n++) views.push({ id: ("s" + idx + "-" + n + "-" + s.id).slice(0, 48), slideId: s.id, hash: idx + "." + n + "&v=" + s.id, width: 1280, height: 720, theme: "light" });
+      for (var n = 1; n <= steps; n++) views.push({ id: ("s" + idx + "-" + n + "-" + s.id).slice(0, 48), slideId: s.id, hash: idx + "." + n + "&v=" + s.id, width: 1280, height: 720, theme: mode });
     });
     var extra = [];
     var firstArea = views.filter(function (v) { return /-1-/.test(v.id) && plan.slides.some(function (s) { return s.id === v.slideId && s.kind === "area"; }); })[0];
     [views[0], firstArea, views.filter(function (v) { return plan.slides.some(function (s) { return s.id === v.slideId && s.kind === "play"; }); })[0]].forEach(function (v) {
-      if (!v) return;
-      extra.push({ id: ("d-" + v.id).slice(0, 48), slideId: v.slideId, hash: v.hash + "&theme=dark", width: 1280, height: 720, theme: "dark" });
-      extra.push({ id: ("m-" + v.id).slice(0, 48), slideId: v.slideId, hash: v.hash, width: 390, height: 844, theme: "light" });
+      if (v) extra.push({ id: ("m-" + v.id).slice(0, 48), slideId: v.slideId, hash: v.hash, width: 390, height: 844, theme: mode });
     });
     return views.concat(extra);
   }
